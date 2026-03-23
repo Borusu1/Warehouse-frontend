@@ -1,5 +1,5 @@
-import { PlaceholderScreen } from '@/src/features/common/screens/PlaceholderScreen';
+import { AddProductScreen } from '@/src/features/inventory/screens/AddProductScreen';
 
 export default function AddProductRoute() {
-  return <PlaceholderScreen screenKey="addProduct" />;
+  return <AddProductScreen />;
 }

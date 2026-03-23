@@ -8,6 +8,7 @@ import { AppScreen } from '@/src/components/AppScreen';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { useI18n } from '@/src/providers/LocaleProvider';
 import { colors, spacing } from '@/src/theme';
+import { validateLoginForm } from '@/src/utils/forms';
 
 export function LoginScreen() {
   const { login } = useAuth();
@@ -15,10 +16,28 @@ export function LoginScreen() {
   const [username, setUsername] = useState('demo');
   const [password, setPassword] = useState('demo123');
   const [error, setError] = useState<string | null>(null);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
     setError(null);
+    setUsernameError(null);
+    setPasswordError(null);
+
+    const validationErrors = validateLoginForm({ username, password });
+
+    if (validationErrors.username || validationErrors.password) {
+      if (validationErrors.username) {
+        setUsernameError(t('validationRequired'));
+      }
+
+      if (validationErrors.password) {
+        setPasswordError(t('validationRequired'));
+      }
+
+      return;
+    }
 
     try {
       setIsSubmitting(true);
@@ -44,13 +63,14 @@ export function LoginScreen() {
 
         <AppInput
           autoCapitalize="none"
+          error={usernameError ?? undefined}
           label={t('usernameLabel')}
           onChangeText={setUsername}
           placeholder={t('usernamePlaceholder')}
           value={username}
         />
         <AppInput
-          error={error ?? undefined}
+          error={passwordError ?? error ?? undefined}
           label={t('passwordLabel')}
           onChangeText={setPassword}
           placeholder={t('passwordPlaceholder')}

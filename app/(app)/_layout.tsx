@@ -16,5 +16,10 @@ export default function ProtectedLayout() {
     return <Redirect href="/(auth)/login" />;
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="product/[productId]" />
+    </Stack>
+  );
 }

@@ -10,6 +10,9 @@ type AppInputProps = {
   secureTextEntry?: boolean;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   error?: string;
+  keyboardType?: 'default' | 'number-pad';
+  multiline?: boolean;
+  numberOfLines?: number;
 };
 
 export function AppInput({
@@ -20,6 +23,9 @@ export function AppInput({
   secureTextEntry = false,
   autoCapitalize = 'none',
   error,
+  keyboardType = 'default',
+  multiline = false,
+  numberOfLines,
 }: AppInputProps) {
   return (
     <View style={styles.wrapper}>
@@ -29,8 +35,12 @@ export function AppInput({
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor={colors.textMuted}
+        keyboardType={keyboardType}
+        multiline={multiline}
+        numberOfLines={numberOfLines}
         secureTextEntry={secureTextEntry}
-        style={[styles.input, error ? styles.inputError : null]}
+        style={[styles.input, multiline ? styles.multilineInput : null, error ? styles.inputError : null]}
+        textAlignVertical={multiline ? 'top' : 'center'}
         value={value}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -56,6 +66,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     minHeight: 48,
     paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  multilineInput: {
+    minHeight: 110,
   },
   inputError: {
     borderColor: colors.danger,

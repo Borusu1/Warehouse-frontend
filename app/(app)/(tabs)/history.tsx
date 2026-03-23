@@ -1,5 +1,5 @@
-import { PlaceholderScreen } from '@/src/features/common/screens/PlaceholderScreen';
+import { HistoryScreen } from '@/src/features/history/screens/HistoryScreen';
 
 export default function HistoryRoute() {
-  return <PlaceholderScreen screenKey="history" />;
+  return <HistoryScreen />;
 }

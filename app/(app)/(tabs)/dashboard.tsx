@@ -1,5 +1,5 @@
-import { PlaceholderScreen } from '@/src/features/common/screens/PlaceholderScreen';
+import { DashboardScreen } from '@/src/features/dashboard/screens/DashboardScreen';
 
 export default function DashboardRoute() {
-  return <PlaceholderScreen screenKey="dashboard" />;
+  return <DashboardScreen />;
 }
