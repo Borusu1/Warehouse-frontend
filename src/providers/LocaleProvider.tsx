@@ -1,11 +1,8 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getLocales } from 'expo-localization';
 import { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from 'react';
 
 import { i18n, setI18nLocale } from '@/src/i18n';
+import { useWarehouseService } from '@/src/providers/WarehouseServiceProvider';
 import { LocaleCode } from '@/src/types/app';
-
-const LOCALE_STORAGE_KEY = 'warehouse.locale';
 
 type LocaleContextValue = {
   isReady: boolean;
@@ -16,13 +13,8 @@ type LocaleContextValue = {
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
-function resolveDefaultLocale(): LocaleCode {
-  const deviceLocale = getLocales()[0]?.languageCode;
-
-  return deviceLocale === 'en' ? 'en' : 'uk';
-}
-
 export function LocaleProvider({ children }: PropsWithChildren) {
+  const warehouseService = useWarehouseService();
   const [locale, setLocaleState] = useState<LocaleCode>('uk');
   const [isReady, setIsReady] = useState(false);
 
@@ -31,8 +23,8 @@ export function LocaleProvider({ children }: PropsWithChildren) {
 
     async function restoreLocale() {
       try {
-        const storedLocale = await AsyncStorage.getItem(LOCALE_STORAGE_KEY);
-        const nextLocale = storedLocale === 'en' || storedLocale === 'uk' ? storedLocale : resolveDefaultLocale();
+        const settings = await warehouseService.getSettings();
+        const nextLocale = settings.language;
 
         setI18nLocale(nextLocale);
 
@@ -51,7 +43,7 @@ export function LocaleProvider({ children }: PropsWithChildren) {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [warehouseService]);
 
   const value = useMemo<LocaleContextValue>(
     () => ({
@@ -59,12 +51,12 @@ export function LocaleProvider({ children }: PropsWithChildren) {
       locale,
       setLocale: async (nextLocale: LocaleCode) => {
         setI18nLocale(nextLocale);
-        await AsyncStorage.setItem(LOCALE_STORAGE_KEY, nextLocale);
+        await warehouseService.updateSettings({ language: nextLocale });
         setLocaleState(nextLocale);
       },
       t: i18n.t.bind(i18n),
     }),
-    [isReady, locale]
+    [isReady, locale, warehouseService]
   );
 
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;

@@ -5,3 +5,7 @@ export type UserSession = {
   displayName: string;
   username: string;
 };
+
+export type AppSettings = {
+  language: LocaleCode;
+};
