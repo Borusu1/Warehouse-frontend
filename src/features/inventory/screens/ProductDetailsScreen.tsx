@@ -10,6 +10,7 @@ import { AppScreen } from '@/src/components/AppScreen';
 import { EmptyState } from '@/src/components/EmptyState';
 import { StatusBadge } from '@/src/components/StatusBadge';
 import { OperationListItem } from '@/src/features/history/components/OperationListItem';
+import { ProductDetailsSkeleton } from '@/src/features/inventory/components/ProductDetailsSkeleton';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { useI18n } from '@/src/providers/LocaleProvider';
 import { useWarehouseService } from '@/src/providers/WarehouseServiceProvider';
@@ -119,7 +120,11 @@ export function ProductDetailsScreen() {
   }
 
   if (isLoading) {
-    return <AppScreen subtitle={t('productLoadingSubtitle')} title={t('productLoadingTitle')}><Text style={styles.helperText}>{t('loading')}</Text></AppScreen>;
+    return (
+      <AppScreen subtitle={t('productLoadingSubtitle')} title={t('productLoadingTitle')}>
+        <ProductDetailsSkeleton />
+      </AppScreen>
+    );
   }
 
   if (!product) {
@@ -226,10 +231,6 @@ export function ProductDetailsScreen() {
 }
 
 const styles = StyleSheet.create({
-  helperText: {
-    color: colors.textMuted,
-    fontSize: 15,
-  },
   header: {
     alignItems: 'flex-start',
     flexDirection: 'row',
@@ -307,5 +308,9 @@ const styles = StyleSheet.create({
   },
   historySection: {
     gap: spacing.md,
+  },
+  helperText: {
+    color: colors.textMuted,
+    fontSize: 15,
   },
 });

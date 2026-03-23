@@ -5,6 +5,7 @@ import { useIsFocused } from '@react-navigation/native';
 
 import { EmptyState } from '@/src/components/EmptyState';
 import { AppScreen } from '@/src/components/AppScreen';
+import { InventorySkeleton } from '@/src/features/inventory/components/InventorySkeleton';
 import { useI18n } from '@/src/providers/LocaleProvider';
 import { useWarehouseService } from '@/src/providers/WarehouseServiceProvider';
 import { colors, radius, spacing } from '@/src/theme';
@@ -89,7 +90,7 @@ export function InventoryScreen() {
       </View>
 
       {isLoading ? (
-        <Text style={styles.helperText}>{t('loading')}</Text>
+        <InventorySkeleton />
       ) : filteredProducts.length ? (
         filteredProducts.map((product) => (
           <ProductListItem
@@ -147,9 +148,5 @@ const styles = StyleSheet.create({
   },
   inactiveLabel: {
     color: colors.primary,
-  },
-  helperText: {
-    color: colors.textMuted,
-    fontSize: 15,
   },
 });

@@ -5,6 +5,7 @@ import { useIsFocused } from '@react-navigation/native';
 
 import { EmptyState } from '@/src/components/EmptyState';
 import { AppScreen } from '@/src/components/AppScreen';
+import { HistorySkeleton } from '@/src/features/history/components/HistorySkeleton';
 import { useI18n } from '@/src/providers/LocaleProvider';
 import { useWarehouseService } from '@/src/providers/WarehouseServiceProvider';
 import { colors, radius, spacing } from '@/src/theme';
@@ -86,7 +87,7 @@ export function HistoryScreen() {
       </View>
 
       {isLoading ? (
-        <Text style={styles.helperText}>{t('loading')}</Text>
+        <HistorySkeleton />
       ) : filteredOperations.length ? (
         filteredOperations.map((operation) => {
           const product = products.find((item) => item.id === operation.productId);
@@ -139,9 +140,5 @@ const styles = StyleSheet.create({
   },
   inactiveLabel: {
     color: colors.primary,
-  },
-  helperText: {
-    color: colors.textMuted,
-    fontSize: 15,
   },
 });

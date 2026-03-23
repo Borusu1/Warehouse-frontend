@@ -5,6 +5,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { EmptyState } from '@/src/components/EmptyState';
 import { MetricCard } from '@/src/components/MetricCard';
 import { AppScreen } from '@/src/components/AppScreen';
+import { DashboardSkeleton } from '@/src/features/dashboard/components/DashboardSkeleton';
 import { useI18n } from '@/src/providers/LocaleProvider';
 import { useWarehouseService } from '@/src/providers/WarehouseServiceProvider';
 import { colors, spacing } from '@/src/theme';
@@ -58,7 +59,7 @@ export function DashboardScreen() {
   return (
     <AppScreen subtitle={t('dashboardSubtitle')} title={t('dashboardTitle')}>
       {isLoading || !summary ? (
-        <Text style={styles.helperText}>{t('loading')}</Text>
+        <DashboardSkeleton />
       ) : (
         <>
           <View style={styles.metricGrid}>
@@ -125,10 +126,6 @@ export function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  helperText: {
-    color: colors.textMuted,
-    fontSize: 15,
-  },
   metricGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
