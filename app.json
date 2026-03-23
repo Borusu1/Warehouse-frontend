@@ -31,7 +31,13 @@
     },
     "plugins": [
       "expo-router",
-      "expo-localization"
+      "expo-localization",
+      [
+        "react-native-nfc-manager",
+        {
+          "nfcPermission": "Scan NFC tags to find warehouse items."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

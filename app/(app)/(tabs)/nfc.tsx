@@ -1,5 +1,5 @@
-import { PlaceholderScreen } from '@/src/features/common/screens/PlaceholderScreen';
+import { NfcScreen } from '@/src/features/nfc/screens/NfcScreen';
 
 export default function NfcRoute() {
-  return <PlaceholderScreen screenKey="nfc" />;
+  return <NfcScreen />;
 }
