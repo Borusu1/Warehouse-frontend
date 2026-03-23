@@ -1,10 +1,10 @@
-import { Redirect } from 'expo-router';
+import { Redirect, Stack } from 'expo-router';
 
 import { AppLoadingScreen } from '@/src/components/AppLoadingScreen';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { useI18n } from '@/src/providers/LocaleProvider';
 
-export default function IndexScreen() {
+export default function AuthLayout() {
   const { isReady: authReady, session } = useAuth();
   const { isReady: localeReady } = useI18n();
 
@@ -16,5 +16,5 @@ export default function IndexScreen() {
     return <Redirect href="/(app)/(tabs)/dashboard" />;
   }
 
-  return <Redirect href="/(auth)/login" />;
+  return <Stack screenOptions={{ headerShown: false }} />;
 }

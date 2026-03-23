@@ -1,16 +1,19 @@
 import { Link } from 'expo-router';
 import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
+import { useI18n } from '@/src/providers/LocaleProvider';
 import { colors, spacing } from '@/src/theme';
 
 export default function NotFoundScreen() {
+  const { t } = useI18n();
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <Text style={styles.title}>Page not found</Text>
-        <Text style={styles.description}>The page you requested does not exist.</Text>
+        <Text style={styles.title}>{t('notFoundTitle')}</Text>
+        <Text style={styles.description}>{t('notFoundDescription')}</Text>
         <Link href="/" style={styles.link}>
-          Go to home
+          {t('backToHome')}
         </Link>
       </View>
     </SafeAreaView>
