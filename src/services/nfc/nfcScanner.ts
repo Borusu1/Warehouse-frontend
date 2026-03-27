@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 
-import { normalizeTagId } from '@/src/utils/tag';
+import { extractTagUidFromNdefMessage } from '@/src/services/nfc/parseNdefTagUid';
 
 let hasStarted = false;
 
@@ -46,13 +46,13 @@ export async function scanNfcTagId() {
     });
 
     const tag = await NfcManager.getTag();
-    const normalizedTagId = normalizeTagId(tag?.id ?? '');
+    const normalizedTagUid = extractTagUidFromNdefMessage(tag);
 
-    if (!normalizedTagId) {
+    if (!normalizedTagUid) {
       throw new Error('NFC_TAG_ID_NOT_FOUND');
     }
 
-    return normalizedTagId;
+    return normalizedTagUid;
   } finally {
     try {
       await NfcManager.cancelTechnologyRequest();

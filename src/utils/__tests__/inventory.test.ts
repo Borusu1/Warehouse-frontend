@@ -1,23 +1,48 @@
-import { initialProducts } from '@/src/services/warehouse/mockData';
 import { filterProducts } from '@/src/utils/inventory';
-import { normalizeTagId } from '@/src/utils/tag';
+import { extractTagUid, isValidTagUid, normalizeTagUid } from '@/src/utils/tag';
 import { resolveProductStatus } from '@/src/utils/warehouse';
 
 describe('inventory utils', () => {
-  it('filters products by status and tag search', () => {
-    const filtered = filterProducts(initialProducts, 'TAG-B220', 'lowStock');
+  const products = [
+    {
+      id: 1,
+      sku: 1001,
+      name: 'Яблука',
+      description: 'Палета яблук',
+      quantityOnHand: 12,
+      createdAt: '2026-03-24T08:00:00.000Z',
+      status: 'inStock' as const,
+    },
+    {
+      id: 2,
+      sku: 1002,
+      name: 'Абрикоси',
+      description: 'Літня партія',
+      quantityOnHand: 0,
+      createdAt: '2026-03-24T09:00:00.000Z',
+      status: 'outOfStock' as const,
+    },
+  ];
+
+  it('filters products by status and text search', () => {
+    const filtered = filterProducts(products, 'літня', 'outOfStock');
 
     expect(filtered).toHaveLength(1);
-    expect(filtered[0].id).toBe('product-2');
+    expect(filtered[0].id).toBe(2);
   });
 
-  it('normalizes tag identifiers consistently', () => {
-    expect(normalizeTagId(' tag - 01 ')).toBe('TAG-01');
+  it('normalizes and validates tag UUIDs', () => {
+    expect(normalizeTagUid(' 123E4567-E89B-12D3-A456-426614174000 ')).toBe(
+      '123e4567-e89b-12d3-a456-426614174000'
+    );
+    expect(extractTagUid('tag: 123e4567-e89b-12d3-a456-426614174000')).toBe(
+      '123e4567-e89b-12d3-a456-426614174000'
+    );
+    expect(isValidTagUid('123e4567-e89b-12d3-a456-426614174000')).toBe(true);
   });
 
-  it('resolves product status from quantity and minimum stock', () => {
-    expect(resolveProductStatus(0, 3)).toBe('outOfStock');
-    expect(resolveProductStatus(3, 3)).toBe('lowStock');
-    expect(resolveProductStatus(10, 3)).toBe('inStock');
+  it('resolves product status from quantity', () => {
+    expect(resolveProductStatus(0)).toBe('outOfStock');
+    expect(resolveProductStatus(10)).toBe('inStock');
   });
 });

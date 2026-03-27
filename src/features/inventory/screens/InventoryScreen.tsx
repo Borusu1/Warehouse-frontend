@@ -6,15 +6,14 @@ import { useIsFocused } from '@react-navigation/native';
 import { EmptyState } from '@/src/components/EmptyState';
 import { AppScreen } from '@/src/components/AppScreen';
 import { InventorySkeleton } from '@/src/features/inventory/components/InventorySkeleton';
+import { ProductListItem } from '@/src/features/inventory/components/ProductListItem';
 import { useI18n } from '@/src/providers/LocaleProvider';
 import { useWarehouseService } from '@/src/providers/WarehouseServiceProvider';
 import { colors, radius, spacing } from '@/src/theme';
 import { Product } from '@/src/types/warehouse';
 import { filterProducts, InventoryFilter } from '@/src/utils/inventory';
 
-import { ProductListItem } from '@/src/features/inventory/components/ProductListItem';
-
-const filters: InventoryFilter[] = ['all', 'inStock', 'lowStock', 'outOfStock'];
+const filters: InventoryFilter[] = ['all', 'inStock', 'outOfStock'];
 
 export function InventoryScreen() {
   const { t } = useI18n();
@@ -98,7 +97,7 @@ export function InventoryScreen() {
             onPress={() =>
               router.push({
                 pathname: '/(app)/product/[productId]',
-                params: { productId: product.id },
+                params: { productId: String(product.id) },
               })
             }
             product={product}

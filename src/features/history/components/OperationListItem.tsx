@@ -9,14 +9,12 @@ import { formatDateTime, formatOperationTypeLabel, formatSignedQuantity } from '
 type OperationListItemProps = {
   operation: Operation;
   productName: string;
-  productUnit: string;
   onPress?: () => void;
 };
 
 export function OperationListItem({
   operation,
   productName,
-  productUnit,
   onPress,
 }: OperationListItemProps) {
   const { locale, t } = useI18n();
@@ -28,12 +26,12 @@ export function OperationListItem({
           <Text style={styles.productName}>{productName}</Text>
           <Text style={styles.type}>{formatOperationTypeLabel(operation.type, t)}</Text>
         </View>
-        <Text style={styles.delta}>{formatSignedQuantity(operation.quantityDelta, productUnit)}</Text>
+        <Text style={styles.delta}>{formatSignedQuantity(operation.quantityDelta)}</Text>
       </View>
-      <Text style={styles.note}>{operation.note}</Text>
+      <Text style={styles.note}>{operation.note || t('operationNoComment')}</Text>
       <View style={styles.metaRow}>
         <Text style={styles.meta}>{formatDateTime(operation.createdAt, locale)}</Text>
-        <Text style={styles.meta}>{operation.actor}</Text>
+        <Text style={styles.meta}>{operation.tagUid}</Text>
       </View>
     </AppCard>
   );

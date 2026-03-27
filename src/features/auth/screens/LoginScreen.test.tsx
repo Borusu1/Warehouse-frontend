@@ -24,7 +24,7 @@ describe('LoginScreen', () => {
 
     const { getByDisplayValue, getByText, findAllByText } = render(<LoginScreen />);
 
-    fireEvent.changeText(getByDisplayValue('demo'), '');
+    fireEvent.changeText(getByDisplayValue('demo@example.com'), '');
     fireEvent.changeText(getByDisplayValue('demo123'), '');
     fireEvent.press(getByText('Увійти'));
 
@@ -42,7 +42,7 @@ describe('LoginScreen', () => {
     fireEvent.press(getByText('Увійти'));
 
     await waitFor(() => {
-      expect(login).toHaveBeenCalledWith('demo', 'demo123');
+      expect(login).toHaveBeenCalledWith('demo@example.com', 'demo123');
     });
   });
 });

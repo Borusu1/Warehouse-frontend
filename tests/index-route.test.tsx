@@ -39,7 +39,7 @@ describe('root index route', () => {
   it('redirects authenticated users to dashboard', async () => {
     mockedUseAuth.mockReturnValue({
       isReady: true,
-      session: { id: 'demo', displayName: 'Warehouse Manager', username: 'demo' },
+      session: { id: 1, email: 'demo@example.com', isActive: true, accessToken: 'token' },
     } as never);
     mockedUseI18n.mockReturnValue(createMockI18n() as never);
 

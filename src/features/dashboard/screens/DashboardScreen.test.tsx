@@ -21,43 +21,40 @@ const mockedUseI18n = jest.mocked(useI18n);
 const mockedUseWarehouseService = jest.mocked(useWarehouseService);
 
 describe('DashboardScreen', () => {
-  it('renders metrics and recent activity', async () => {
+  it('renders metrics and recent activity from API data', async () => {
     mockedUseI18n.mockReturnValue(createMockI18n() as never);
     mockedUseWarehouseService.mockReturnValue({
       getDashboardSummary: jest.fn().mockResolvedValue({
-        totalProducts: 4,
-        totalUnits: 58,
-        lowStockCount: 1,
+        totalProducts: 2,
+        totalUnits: 15,
+        lowStockCount: 0,
         outOfStockCount: 1,
         recentOperations: [
           {
-            id: 'op-1',
-            type: 'stock-in',
-            productId: 'product-1',
-            quantityDelta: 10,
-            quantityAfter: 18,
-            note: 'Нове надходження партії сенсорів.',
-            actor: 'Warehouse Manager',
-            createdAt: '2026-03-22T09:00:00.000Z',
+            id: 1,
+            usageId: 10,
+            productId: 2,
+            productNameSnapshot: 'Абрикоси',
+            type: 'receipt',
+            quantity: 7,
+            quantityDelta: 7,
+            note: 'Нове надходження',
+            actor: 'API',
+            createdAt: '2026-03-24T09:00:00.000Z',
+            tagUid: '123e4567-e89b-12d3-a456-426614174000',
           },
         ],
-        syncStatus: 'local',
-        lastUpdatedAt: '2026-03-22T09:00:00.000Z',
+        syncStatus: 'api',
+        lastUpdatedAt: '2026-03-24T09:00:00.000Z',
       }),
       getProducts: jest.fn().mockResolvedValue([
         {
-          id: 'product-1',
-          name: 'Температурний сенсор',
-          sku: 'SNS-1001',
-          category: 'Сенсори',
-          quantity: 18,
-          unit: 'шт',
-          location: 'A-01',
-          minStock: 6,
-          status: 'inStock',
-          notes: '',
-          tags: [],
-          updatedAt: '2026-03-22T09:00:00.000Z',
+          id: 1,
+          name: 'Яблука',
+          description: 'Палета яблук',
+          quantityOnHand: 0,
+          createdAt: '2026-03-24T08:00:00.000Z',
+          status: 'outOfStock',
         },
       ]),
     } as never);
@@ -65,9 +62,9 @@ describe('DashboardScreen', () => {
     const { getByText } = render(<DashboardScreen />);
 
     await waitFor(() => {
-      expect(getByText('Локальний mock-режим')).toBeTruthy();
+      expect(getByText('Підключено до API')).toBeTruthy();
       expect(getByText('Товарів')).toBeTruthy();
-      expect(getByText('Нове надходження партії сенсорів.')).toBeTruthy();
+      expect(getByText('Нове надходження')).toBeTruthy();
     });
   });
 });

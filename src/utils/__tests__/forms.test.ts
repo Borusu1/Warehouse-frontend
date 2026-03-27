@@ -1,7 +1,8 @@
 import {
-  parseTagInput,
   validateCreateProductForm,
   validateLoginForm,
+  validatePositiveIntegerInput,
+  validateTagUidInput,
 } from '@/src/utils/forms';
 
 describe('forms utils', () => {
@@ -12,32 +13,35 @@ describe('forms utils', () => {
     });
   });
 
-  it('parses tags from commas and line breaks', () => {
-    expect(parseTagInput('TAG-1,\n TAG-2 ,TAG-3')).toEqual(['TAG-1', 'TAG-2', 'TAG-3']);
-  });
-
-  it('validates product form numbers and duplicate tags', () => {
+  it('validates required product name', () => {
     expect(
       validateCreateProductForm({
-        name: '',
         sku: '',
-        category: '',
-        quantity: '-1',
-        unit: '',
-        location: '',
-        minStock: '-5',
-        tagsInput: 'TAG-1, tag-1',
-        notes: '',
+        name: '',
+        description: '',
       })
     ).toEqual({
-      name: 'required',
       sku: 'required',
-      category: 'required',
-      quantity: 'nonNegative',
-      unit: 'required',
-      location: 'required',
-      minStock: 'nonNegative',
-      tagsInput: 'duplicateTag',
+      name: 'required',
     });
+  });
+
+  it('validates product SKU as positive integer', () => {
+    expect(
+      validateCreateProductForm({
+        sku: '0',
+        name: 'Apples',
+        description: '',
+      })
+    ).toEqual({
+      sku: 'nonNegative',
+    });
+  });
+
+  it('validates positive integer and UUID inputs', () => {
+    expect(validatePositiveIntegerInput('3')).toBe(true);
+    expect(validatePositiveIntegerInput('0')).toBe(false);
+    expect(validateTagUidInput('123e4567-e89b-12d3-a456-426614174000')).toBe(true);
+    expect(validateTagUidInput('TAG-1')).toBe(false);
   });
 });

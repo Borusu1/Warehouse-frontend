@@ -32,12 +32,12 @@ export function SettingsScreen() {
       <AppCard>
         <Text style={styles.sectionTitle}>{t('accountSectionTitle')}</Text>
         <View style={styles.infoRow}>
-          <Text style={styles.label}>{t('accountNameLabel')}</Text>
-          <Text style={styles.value}>{session?.displayName}</Text>
+          <Text style={styles.label}>{t('accountIdLabel')}</Text>
+          <Text style={styles.value}>{session?.id}</Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.label}>{t('accountUsernameLabel')}</Text>
-          <Text style={styles.value}>{session?.username}</Text>
+          <Text style={styles.label}>{t('accountEmailLabel')}</Text>
+          <Text style={styles.value}>{session?.email}</Text>
         </View>
       </AppCard>
 

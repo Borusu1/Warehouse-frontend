@@ -40,18 +40,43 @@ describe('NfcScreen', () => {
     });
   });
 
-  it('shows a clear fallback on web', () => {
+  it('supports manual lookup on web', async () => {
     Object.defineProperty(Platform, 'OS', {
       configurable: true,
       value: 'web',
     });
 
     mockedUseI18n.mockReturnValue(createMockI18n() as never);
-    mockedUseWarehouseService.mockReturnValue({} as never);
+    mockedUseWarehouseService.mockReturnValue({
+      lookupTag: jest.fn().mockResolvedValue({
+        tagUid: '123e4567-e89b-12d3-a456-426614174000',
+        activeUsage: {
+          id: 10,
+          tagUid: '123e4567-e89b-12d3-a456-426614174000',
+          productId: 1,
+          productNameSnapshot: 'Яблука',
+          quantityInitial: 18,
+          quantityCurrent: 12,
+          arrivedAt: '2026-03-22T09:00:00.000Z',
+          warehouseLocation: 'A-01',
+          closedAt: null,
+          events: [],
+        },
+        usages: [],
+      }),
+    } as never);
 
-    const { getByText } = render(<NfcScreen />);
+    const { getByPlaceholderText, getByText } = render(<NfcScreen />);
 
-    expect(getByText('Функція доступна лише на мобільному застосунку')).toBeTruthy();
+    fireEvent.changeText(
+      getByPlaceholderText('123e4567-e89b-12d3-a456-426614174000'),
+      '123e4567-e89b-12d3-a456-426614174000'
+    );
+    fireEvent.press(getByText('Знайти мітку'));
+
+    await waitFor(() => {
+      expect(getByText('Активний товар знайдено')).toBeTruthy();
+    });
   });
 
   it('scans a native tag and opens the linked product', async () => {
@@ -61,21 +86,23 @@ describe('NfcScreen', () => {
     });
 
     mockedUseI18n.mockReturnValue(createMockI18n() as never);
-    mockedScanNfcTagId.mockResolvedValue('TAG-A100');
+    mockedScanNfcTagId.mockResolvedValue('123e4567-e89b-12d3-a456-426614174000');
     mockedUseWarehouseService.mockReturnValue({
-      findProductByTagId: jest.fn().mockResolvedValue({
-        id: 'product-1',
-        name: 'Температурний сенсор',
-        sku: 'SNS-1001',
-        category: 'Сенсори',
-        quantity: 18,
-        unit: 'шт',
-        location: 'A-01',
-        minStock: 6,
-        status: 'inStock',
-        notes: '',
-        tags: [{ id: 'TAG-A100', boundAt: '2026-03-15T08:30:00.000Z' }],
-        updatedAt: '2026-03-22T09:00:00.000Z',
+      lookupTag: jest.fn().mockResolvedValue({
+        tagUid: '123e4567-e89b-12d3-a456-426614174000',
+        activeUsage: {
+          id: 10,
+          tagUid: '123e4567-e89b-12d3-a456-426614174000',
+          productId: 1,
+          productNameSnapshot: 'Яблука',
+          quantityInitial: 18,
+          quantityCurrent: 12,
+          arrivedAt: '2026-03-22T09:00:00.000Z',
+          warehouseLocation: 'A-01',
+          closedAt: null,
+          events: [],
+        },
+        usages: [],
       }),
     } as never);
 
@@ -84,48 +111,32 @@ describe('NfcScreen', () => {
     fireEvent.press(getByText('Сканувати мітку'));
 
     await waitFor(() => {
-      expect(getByText('Товар знайдено')).toBeTruthy();
+      expect(getByText('Активний товар знайдено')).toBeTruthy();
     });
 
     fireEvent.press(getByText('Відкрити картку товару'));
     expect(router.push).toHaveBeenCalled();
   });
 
-  it('shows an error when the scanned tag is not linked to a product', async () => {
+  it('shows an error when the tag is unknown', async () => {
     Object.defineProperty(Platform, 'OS', {
       configurable: true,
-      value: 'android',
+      value: 'web',
     });
 
     mockedUseI18n.mockReturnValue(createMockI18n() as never);
-    mockedScanNfcTagId.mockResolvedValue('TAG-UNKNOWN');
     mockedUseWarehouseService.mockReturnValue({
-      findProductByTagId: jest.fn().mockResolvedValue(null),
+      lookupTag: jest.fn().mockResolvedValue(null),
     } as never);
 
-    const { getByText, findByText } = render(<NfcScreen />);
+    const { getByPlaceholderText, getByText, findByText } = render(<NfcScreen />);
 
-    fireEvent.press(getByText('Сканувати мітку'));
+    fireEvent.changeText(
+      getByPlaceholderText('123e4567-e89b-12d3-a456-426614174000'),
+      '123e4567-e89b-12d3-a456-426614174000'
+    );
+    fireEvent.press(getByText('Знайти мітку'));
 
-    expect(await findByText('Мітка прочитана, але товар із таким ID не знайдено.')).toBeTruthy();
-  });
-
-  it('shows a device error when NFC is disabled', async () => {
-    Object.defineProperty(Platform, 'OS', {
-      configurable: true,
-      value: 'android',
-    });
-
-    mockedUseI18n.mockReturnValue(createMockI18n() as never);
-    mockedScanNfcTagId.mockRejectedValue(new Error('NFC_DISABLED'));
-    mockedUseWarehouseService.mockReturnValue({
-      findProductByTagId: jest.fn(),
-    } as never);
-
-    const { getByText, findByText } = render(<NfcScreen />);
-
-    fireEvent.press(getByText('Сканувати мітку'));
-
-    expect(await findByText('NFC вимкнено на пристрої. Увімкніть його і спробуйте ще раз.')).toBeTruthy();
+    expect(await findByText('Мітка не знайдена у backend.')).toBeTruthy();
   });
 });

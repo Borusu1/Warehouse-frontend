@@ -29,37 +29,25 @@ const mockedUseI18n = jest.mocked(useI18n);
 const mockedUseWarehouseService = jest.mocked(useWarehouseService);
 
 describe('InventoryScreen', () => {
-  it('filters products by tag search and opens a card', async () => {
+  it('filters products by description and opens a card', async () => {
     mockedUseI18n.mockReturnValue(createMockI18n() as never);
     mockedUseWarehouseService.mockReturnValue({
       getProducts: jest.fn().mockResolvedValue([
         {
-          id: 'product-1',
-          name: 'Температурний сенсор',
-          sku: 'SNS-1001',
-          category: 'Сенсори',
-          quantity: 18,
-          unit: 'шт',
-          location: 'A-01',
-          minStock: 6,
+          id: 1,
+          name: 'Яблука',
+          description: 'Соковиті яблука',
+          quantityOnHand: 18,
+          createdAt: '2026-03-22T09:00:00.000Z',
           status: 'inStock',
-          notes: '',
-          tags: [{ id: 'TAG-A100', boundAt: '2026-03-15T08:30:00.000Z' }],
-          updatedAt: '2026-03-22T09:00:00.000Z',
         },
         {
-          id: 'product-2',
-          name: 'Контролер шлюзу',
-          sku: 'CTL-2200',
-          category: 'Контролери',
-          quantity: 4,
-          unit: 'шт',
-          location: 'B-04',
-          minStock: 5,
-          status: 'lowStock',
-          notes: '',
-          tags: [{ id: 'TAG-B220', boundAt: '2026-03-10T12:00:00.000Z' }],
-          updatedAt: '2026-03-22T10:15:00.000Z',
+          id: 2,
+          name: 'Абрикоси',
+          description: 'Літня партія',
+          quantityOnHand: 0,
+          createdAt: '2026-03-22T10:15:00.000Z',
+          status: 'outOfStock',
         },
       ]),
     } as never);
@@ -67,17 +55,17 @@ describe('InventoryScreen', () => {
     const { getByPlaceholderText, getByText, queryByText } = render(<InventoryScreen />);
 
     await waitFor(() => {
-      expect(getByText('Температурний сенсор')).toBeTruthy();
+      expect(getByText('Яблука')).toBeTruthy();
     });
 
-    fireEvent.changeText(getByPlaceholderText('Пошук за назвою, SKU або ID мітки'), 'TAG-B220');
+    fireEvent.changeText(getByPlaceholderText('Пошук за назвою, описом або ID товару'), 'літня');
 
     await waitFor(() => {
-      expect(getByText('Контролер шлюзу')).toBeTruthy();
-      expect(queryByText('Температурний сенсор')).toBeNull();
+      expect(getByText('Абрикоси')).toBeTruthy();
+      expect(queryByText('Яблука')).toBeNull();
     });
 
-    fireEvent.press(getByText('Контролер шлюзу'));
+    fireEvent.press(getByText('Абрикоси'));
     expect(mockPush).toHaveBeenCalled();
   });
 });

@@ -1,38 +1,65 @@
-export type ProductStatus = 'inStock' | 'lowStock' | 'outOfStock';
+export type ProductStatus = 'inStock' | 'outOfStock';
 
-export type ProductTag = {
-  id: string;
-  boundAt: string;
-  note?: string;
-};
+export type InventoryEventType = 'receipt' | 'shipment_partial' | 'shipment_full';
 
 export type Product = {
-  id: string;
+  id: number;
+  sku: number;
   name: string;
-  sku: string;
-  category: string;
-  quantity: number;
-  unit: string;
-  location: string;
-  minStock: number;
+  description: string | null;
+  quantityOnHand: number;
+  createdAt: string;
   status: ProductStatus;
-  notes: string;
-  tags: ProductTag[];
-  updatedAt: string;
 };
 
-export type OperationType = 'created' | 'stock-in' | 'stock-out' | 'adjustment';
+export type UsageEvent = {
+  id: number;
+  type: InventoryEventType;
+  quantity: number;
+  occurredAt: string;
+  note: string | null;
+};
+
+export type TagUsage = {
+  id: number;
+  tagUid: string;
+  productId: number;
+  productNameSnapshot: string;
+  quantityInitial: number;
+  quantityCurrent: number;
+  arrivedAt: string;
+  warehouseLocation: string | null;
+  closedAt: string | null;
+  events: UsageEvent[];
+};
+
+export type ActiveTag = Omit<TagUsage, 'closedAt' | 'events'>;
+
+export type TagHistory = {
+  tagUid: string;
+  usages: TagUsage[];
+};
+
+export type TagLookupResult = {
+  tagUid: string;
+  activeUsage: TagUsage | null;
+  usages: TagUsage[];
+};
+
+export type OperationType = InventoryEventType;
 
 export type Operation = {
-  id: string;
+  id: number;
+  usageId: number;
+  productId: number;
+  productNameSnapshot: string;
   type: OperationType;
-  productId: string;
+  quantity: number;
   quantityDelta: number;
-  quantityAfter: number;
-  note: string;
-  actor: string;
+  note: string | null;
   createdAt: string;
-  tagId?: string;
+  actor: string;
+  tagUid: string;
 };
 
 export type DashboardSummary = {
@@ -41,6 +68,6 @@ export type DashboardSummary = {
   lowStockCount: number;
   outOfStockCount: number;
   recentOperations: Operation[];
-  syncStatus: 'local';
+  syncStatus: 'api';
   lastUpdatedAt: string;
 };

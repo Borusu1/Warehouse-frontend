@@ -10,7 +10,7 @@ import { useI18n } from '@/src/providers/LocaleProvider';
 import { useWarehouseService } from '@/src/providers/WarehouseServiceProvider';
 import { colors, spacing } from '@/src/theme';
 import { DashboardSummary, Product } from '@/src/types/warehouse';
-import { formatDateTime } from '@/src/utils/format';
+import { formatDateTime, formatQuantity } from '@/src/utils/format';
 
 export function DashboardScreen() {
   const { locale, t } = useI18n();
@@ -54,7 +54,7 @@ export function DashboardScreen() {
     };
   }, [isFocused, warehouseService]);
 
-  const attentionProducts = products.filter((product) => product.status !== 'inStock').slice(0, 3);
+  const attentionProducts = products.filter((product) => product.status === 'outOfStock').slice(0, 3);
 
   return (
     <AppScreen subtitle={t('dashboardSubtitle')} title={t('dashboardTitle')}>
@@ -65,22 +65,13 @@ export function DashboardScreen() {
           <View style={styles.metricGrid}>
             <MetricCard label={t('dashboardMetricProducts')} value={String(summary.totalProducts)} />
             <MetricCard label={t('dashboardMetricUnits')} tone="success" value={String(summary.totalUnits)} />
-            <MetricCard
-              label={t('dashboardMetricLowStock')}
-              tone="warning"
-              value={String(summary.lowStockCount)}
-            />
-            <MetricCard
-              label={t('dashboardMetricOutOfStock')}
-              tone="danger"
-              value={String(summary.outOfStockCount)}
-            />
+            <MetricCard label={t('dashboardMetricOutOfStock')} tone="danger" value={String(summary.outOfStockCount)} />
           </View>
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('dashboardSyncTitle')}</Text>
             <View style={styles.infoCard}>
-              <Text style={styles.infoValue}>{t('dashboardSyncLocalMode')}</Text>
+              <Text style={styles.infoValue}>{t('dashboardSyncApiMode')}</Text>
               <Text style={styles.infoCaption}>
                 {t('dashboardLastUpdated')}: {formatDateTime(summary.lastUpdatedAt, locale)}
               </Text>
@@ -93,9 +84,7 @@ export function DashboardScreen() {
               attentionProducts.map((product) => (
                 <View key={product.id} style={styles.infoCard}>
                   <Text style={styles.infoValue}>{product.name}</Text>
-                  <Text style={styles.infoCaption}>
-                    {product.quantity} {product.unit} • {product.location}
-                  </Text>
+                  <Text style={styles.infoCaption}>{formatQuantity(product.quantityOnHand)}</Text>
                 </View>
               ))
             ) : (
@@ -108,16 +97,16 @@ export function DashboardScreen() {
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('dashboardRecentActionsTitle')}</Text>
-            {summary.recentOperations.map((operation) => {
-              const product = products.find((item) => item.id === operation.productId);
-
-              return (
+            {summary.recentOperations.length ? (
+              summary.recentOperations.map((operation) => (
                 <View key={operation.id} style={styles.infoCard}>
-                  <Text style={styles.infoValue}>{product?.name ?? t('unknownProduct')}</Text>
-                  <Text style={styles.infoCaption}>{operation.note}</Text>
+                  <Text style={styles.infoValue}>{operation.productNameSnapshot}</Text>
+                  <Text style={styles.infoCaption}>{operation.note || t('operationNoComment')}</Text>
                 </View>
-              );
-            })}
+              ))
+            ) : (
+              <EmptyState description={t('historyEmptyDescription')} title={t('historyEmptyTitle')} />
+            )}
           </View>
         </>
       )}

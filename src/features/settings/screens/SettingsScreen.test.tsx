@@ -24,8 +24,8 @@ describe('SettingsScreen', () => {
     mockedUseAuth.mockReturnValue({
       logout,
       session: {
-        displayName: 'Warehouse Manager',
-        username: 'demo',
+        id: 1,
+        email: 'demo@example.com',
       },
     } as never);
     mockedUseI18n.mockReturnValue(i18n as never);

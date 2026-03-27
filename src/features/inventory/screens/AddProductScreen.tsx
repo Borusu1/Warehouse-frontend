@@ -8,19 +8,13 @@ import { AppInput } from '@/src/components/AppInput';
 import { AppScreen } from '@/src/components/AppScreen';
 import { useI18n } from '@/src/providers/LocaleProvider';
 import { useWarehouseService } from '@/src/providers/WarehouseServiceProvider';
-import { colors, spacing } from '@/src/theme';
+import { colors } from '@/src/theme';
 import { CreateProductFormErrors, CreateProductFormValues, validateCreateProductForm } from '@/src/utils/forms';
 
 const initialValues: CreateProductFormValues = {
-  name: '',
   sku: '',
-  category: '',
-  quantity: '0',
-  unit: 'шт',
-  location: '',
-  minStock: '0',
-  tagsInput: '',
-  notes: '',
+  name: '',
+  description: '',
 };
 
 export function AddProductScreen() {
@@ -38,26 +32,6 @@ export function AddProductScreen() {
     }));
   }
 
-  function resolveError(code?: string) {
-    if (!code) {
-      return undefined;
-    }
-
-    if (code === 'required') {
-      return t('validationRequired');
-    }
-
-    if (code === 'nonNegative') {
-      return t('validationNonNegative');
-    }
-
-    if (code === 'duplicateTag') {
-      return t('validationDuplicateTags');
-    }
-
-    return undefined;
-  }
-
   async function handleSubmit() {
     const nextErrors = validateCreateProductForm(values);
     setErrors(nextErrors);
@@ -70,39 +44,18 @@ export function AddProductScreen() {
     try {
       setIsSubmitting(true);
       const createdProduct = await warehouseService.createProduct({
+        sku: Number(values.sku),
         name: values.name,
-        sku: values.sku,
-        category: values.category,
-        quantity: Number(values.quantity),
-        unit: values.unit,
-        location: values.location,
-        minStock: Number(values.minStock),
-        notes: values.notes,
-        tags: values.tagsInput
-          .split(/[\n,]/)
-          .map((value) => value.trim())
-          .filter(Boolean),
+        description: values.description,
       });
 
       setValues(initialValues);
       router.push({
         pathname: '/(app)/product/[productId]',
-        params: { productId: createdProduct.id },
+        params: { productId: String(createdProduct.id) },
       });
     } catch (error) {
-      const code = error instanceof Error ? error.message : 'UNKNOWN';
-
-      if (code === 'SKU_ALREADY_EXISTS') {
-        setSubmitError(t('createProductSkuExists'));
-        return;
-      }
-
-      if (code === 'TAG_ALREADY_EXISTS') {
-        setSubmitError(t('createProductTagExists'));
-        return;
-      }
-
-      setSubmitError(t('genericError'));
+      setSubmitError(error instanceof Error ? error.message : t('genericError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -112,73 +65,33 @@ export function AddProductScreen() {
     <AppScreen subtitle={t('addProductSubtitle')} title={t('addProductTitle')}>
       <AppCard>
         <AppInput
-          error={resolveError(errors.name)}
-          label={t('fieldName')}
-          onChangeText={(value) => setField('name', value)}
-          placeholder={t('fieldNamePlaceholder')}
-          value={values.name}
-        />
-        <AppInput
-          autoCapitalize="characters"
-          error={resolveError(errors.sku)}
+          error={
+            errors.sku
+              ? errors.sku === 'nonNegative'
+                ? t('validationPositiveInteger')
+                : t('validationRequired')
+              : undefined
+          }
+          keyboardType="number-pad"
           label={t('fieldSku')}
           onChangeText={(value) => setField('sku', value)}
           placeholder={t('fieldSkuPlaceholder')}
           value={values.sku}
         />
         <AppInput
-          error={resolveError(errors.category)}
-          label={t('fieldCategory')}
-          onChangeText={(value) => setField('category', value)}
-          placeholder={t('fieldCategoryPlaceholder')}
-          value={values.category}
+          error={errors.name ? t('validationRequired') : undefined}
+          label={t('fieldName')}
+          onChangeText={(value) => setField('name', value)}
+          placeholder={t('fieldNamePlaceholder')}
+          value={values.name}
         />
         <AppInput
-          error={resolveError(errors.quantity)}
-          keyboardType="number-pad"
-          label={t('fieldQuantity')}
-          onChangeText={(value) => setField('quantity', value)}
-          placeholder="0"
-          value={values.quantity}
-        />
-        <AppInput
-          error={resolveError(errors.unit)}
-          label={t('fieldUnit')}
-          onChangeText={(value) => setField('unit', value)}
-          placeholder={t('fieldUnitPlaceholder')}
-          value={values.unit}
-        />
-        <AppInput
-          error={resolveError(errors.location)}
-          label={t('fieldLocation')}
-          onChangeText={(value) => setField('location', value)}
-          placeholder={t('fieldLocationPlaceholder')}
-          value={values.location}
-        />
-        <AppInput
-          error={resolveError(errors.minStock)}
-          keyboardType="number-pad"
-          label={t('fieldMinStock')}
-          onChangeText={(value) => setField('minStock', value)}
-          placeholder="0"
-          value={values.minStock}
-        />
-        <AppInput
-          error={resolveError(errors.tagsInput)}
-          label={t('fieldTags')}
-          multiline
-          numberOfLines={3}
-          onChangeText={(value) => setField('tagsInput', value)}
-          placeholder={t('fieldTagsPlaceholder')}
-          value={values.tagsInput}
-        />
-        <AppInput
-          label={t('fieldNotes')}
+          label={t('fieldDescription')}
           multiline
           numberOfLines={4}
-          onChangeText={(value) => setField('notes', value)}
-          placeholder={t('fieldNotesPlaceholder')}
-          value={values.notes}
+          onChangeText={(value) => setField('description', value)}
+          placeholder={t('fieldDescriptionPlaceholder')}
+          value={values.description}
         />
         {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
         <AppButton

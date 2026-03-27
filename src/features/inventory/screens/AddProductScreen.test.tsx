@@ -35,11 +35,11 @@ describe('AddProductScreen', () => {
 
     fireEvent.press(getByText('Створити товар'));
 
-    expect(await findAllByText('Поле є обов’язковим.')).toHaveLength(4);
+    expect((await findAllByText('Поле є обов’язковим.')).length).toBe(2);
   });
 
   it('creates a product and opens the product card', async () => {
-    const createProduct = jest.fn().mockResolvedValue({ id: 'created-1' });
+    const createProduct = jest.fn().mockResolvedValue({ id: 11 });
     mockedUseI18n.mockReturnValue(createMockI18n() as never);
     mockedUseWarehouseService.mockReturnValue({
       createProduct,
@@ -47,21 +47,24 @@ describe('AddProductScreen', () => {
 
     const { getByPlaceholderText, getByText } = render(<AddProductScreen />);
 
+    fireEvent.changeText(getByPlaceholderText('Наприклад, 1001'), '1001');
     fireEvent.changeText(getByPlaceholderText('Наприклад, Температурний сенсор'), 'Новий товар');
-    fireEvent.changeText(getByPlaceholderText('Наприклад, SNS-1001'), 'NEW-001');
-    fireEvent.changeText(getByPlaceholderText('Сенсори'), 'Тести');
-    fireEvent.changeText(getByPlaceholderText('A-01'), 'Z-09');
+    fireEvent.changeText(getByPlaceholderText('Короткий опис товару'), 'Опис нового товару');
 
     fireEvent.press(getByText('Створити товар'));
 
     await waitFor(() => {
-      expect(createProduct).toHaveBeenCalled();
+      expect(createProduct).toHaveBeenCalledWith({
+        sku: 1001,
+        name: 'Новий товар',
+        description: 'Опис нового товару',
+      });
       expect(mockPush).toHaveBeenCalled();
     });
   });
 
-  it('shows a backend style duplicate sku error', async () => {
-    const createProduct = jest.fn().mockRejectedValue(new Error('SKU_ALREADY_EXISTS'));
+  it('shows a backend error message', async () => {
+    const createProduct = jest.fn().mockRejectedValue(new Error('Product already exists'));
     mockedUseI18n.mockReturnValue(createMockI18n() as never);
     mockedUseWarehouseService.mockReturnValue({
       createProduct,
@@ -69,13 +72,25 @@ describe('AddProductScreen', () => {
 
     const { getByPlaceholderText, getByText, findByText } = render(<AddProductScreen />);
 
+    fireEvent.changeText(getByPlaceholderText('Наприклад, 1001'), '1001');
     fireEvent.changeText(getByPlaceholderText('Наприклад, Температурний сенсор'), 'Новий товар');
-    fireEvent.changeText(getByPlaceholderText('Наприклад, SNS-1001'), 'NEW-001');
-    fireEvent.changeText(getByPlaceholderText('Сенсори'), 'Тести');
-    fireEvent.changeText(getByPlaceholderText('A-01'), 'Z-09');
-
     fireEvent.press(getByText('Створити товар'));
 
-    expect(await findByText('Товар з таким SKU вже існує.')).toBeTruthy();
+    expect(await findByText('Product already exists')).toBeTruthy();
+  });
+
+  it('validates positive SKU', async () => {
+    mockedUseI18n.mockReturnValue(createMockI18n() as never);
+    mockedUseWarehouseService.mockReturnValue({
+      createProduct: jest.fn(),
+    } as never);
+
+    const { getByPlaceholderText, getByText, findByText } = render(<AddProductScreen />);
+
+    fireEvent.changeText(getByPlaceholderText('Наприклад, 1001'), '0');
+    fireEvent.changeText(getByPlaceholderText('Наприклад, Температурний сенсор'), 'Новий товар');
+    fireEvent.press(getByText('Створити товар'));
+
+    expect(await findByText('Введіть ціле число, більше за нуль.')).toBeTruthy();
   });
 });

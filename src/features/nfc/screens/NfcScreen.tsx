@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 
 import { AppButton } from '@/src/components/AppButton';
 import { AppCard } from '@/src/components/AppCard';
+import { AppInput } from '@/src/components/AppInput';
 import { AppScreen } from '@/src/components/AppScreen';
 import { EmptyState } from '@/src/components/EmptyState';
 import { StatusBadge } from '@/src/components/StatusBadge';
@@ -11,32 +12,55 @@ import { useI18n } from '@/src/providers/LocaleProvider';
 import { useWarehouseService } from '@/src/providers/WarehouseServiceProvider';
 import { scanNfcTagId } from '@/src/services/nfc/nfcScanner';
 import { colors, spacing } from '@/src/theme';
-import { Product } from '@/src/types/warehouse';
+import { TagLookupResult } from '@/src/types/warehouse';
 import { formatQuantity } from '@/src/utils/format';
+import { extractTagUid } from '@/src/utils/tag';
 
 export function NfcScreen() {
   const { t } = useI18n();
   const warehouseService = useWarehouseService();
   const [isScanning, setIsScanning] = useState(false);
+  const [isLookingUp, setIsLookingUp] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
-  const [lastTagId, setLastTagId] = useState<string | null>(null);
-  const [foundProduct, setFoundProduct] = useState<Product | null>(null);
+  const [lastTagUid, setLastTagUid] = useState<string | null>(null);
+  const [manualTagUid, setManualTagUid] = useState('');
+  const [lookupResult, setLookupResult] = useState<TagLookupResult | null>(null);
 
-  async function handleScan() {
-    setScanError(null);
-    setFoundProduct(null);
+  async function runLookup(rawTagValue: string) {
+    const normalizedTagUid = extractTagUid(rawTagValue);
+
+    if (!normalizedTagUid) {
+      setLookupResult(null);
+      setScanError(t('validationInvalidUuid'));
+      return;
+    }
 
     try {
-      setIsScanning(true);
-      const tagId = await scanNfcTagId();
-      const product = await warehouseService.findProductByTagId(tagId);
+      setIsLookingUp(true);
+      setScanError(null);
+      const result = await warehouseService.lookupTag(normalizedTagUid);
 
-      setLastTagId(tagId);
-      setFoundProduct(product);
+      setLastTagUid(normalizedTagUid);
+      setLookupResult(result);
+      setManualTagUid(normalizedTagUid);
 
-      if (!product) {
+      if (!result) {
         setScanError(t('nfcUnknownTag'));
       }
+    } catch (error) {
+      setLookupResult(null);
+      setScanError(error instanceof Error ? error.message : t('genericError'));
+    } finally {
+      setIsLookingUp(false);
+    }
+  }
+
+  async function handleScan() {
+    try {
+      setIsScanning(true);
+      setScanError(null);
+      const tagUid = await scanNfcTagId();
+      await runLookup(tagUid);
     } catch (error) {
       const code = error instanceof Error ? error.message : 'UNKNOWN';
 
@@ -46,8 +70,6 @@ export function NfcScreen() {
         setScanError(t('nfcNotSupported'));
       } else if (code === 'NFC_TAG_ID_NOT_FOUND') {
         setScanError(t('nfcTagIdMissing'));
-      } else if (code === 'NFC_WEB_UNAVAILABLE') {
-        setScanError(t('nfcWebOnlyMessage'));
       } else {
         setScanError(t('genericError'));
       }
@@ -56,58 +78,86 @@ export function NfcScreen() {
     }
   }
 
-  if (Platform.OS === 'web') {
-    return (
-      <AppScreen subtitle={t('nfcSubtitle')} title={t('nfcTitle')}>
-        <EmptyState description={t('nfcWebOnlyDescription')} title={t('nfcWebOnlyTitle')} />
-      </AppScreen>
-    );
-  }
-
   return (
     <AppScreen subtitle={t('nfcSubtitle')} title={t('nfcTitle')}>
+      {Platform.OS === 'web' ? (
+        <AppCard>
+          <Text style={styles.sectionTitle}>{t('nfcManualLookupTitle')}</Text>
+          <Text style={styles.description}>{t('nfcManualLookupDescription')}</Text>
+        </AppCard>
+      ) : (
+        <AppCard>
+          <Text style={styles.sectionTitle}>{t('nfcReadyTitle')}</Text>
+          <Text style={styles.description}>{t('nfcReadyDescription')}</Text>
+          <AppButton
+            disabled={isScanning}
+            label={isScanning ? t('nfcScanningAction') : t('nfcScanAction')}
+            onPress={handleScan}
+          />
+        </AppCard>
+      )}
+
       <AppCard>
-        <Text style={styles.sectionTitle}>{t('nfcReadyTitle')}</Text>
-        <Text style={styles.description}>{t('nfcReadyDescription')}</Text>
+        <AppInput
+          error={scanError === t('validationInvalidUuid') ? scanError : undefined}
+          label={t('fieldTagUid')}
+          onChangeText={setManualTagUid}
+          placeholder={t('fieldTagUidPlaceholder')}
+          value={manualTagUid}
+        />
         <AppButton
-          disabled={isScanning}
-          label={isScanning ? t('nfcScanningAction') : t('nfcScanAction')}
-          onPress={handleScan}
+          disabled={isLookingUp}
+          label={isLookingUp ? t('nfcLookupLoading') : t('nfcLookupAction')}
+          onPress={() => runLookup(manualTagUid)}
         />
       </AppCard>
 
-      {scanError ? (
+      {scanError && scanError !== t('validationInvalidUuid') ? (
         <AppCard>
           <Text style={styles.errorText}>{scanError}</Text>
-          {lastTagId ? <Text style={styles.metaText}>{t('nfcLastTag')}: {lastTagId}</Text> : null}
+          {lastTagUid ? <Text style={styles.metaText}>{t('nfcLastTag')}: {lastTagUid}</Text> : null}
         </AppCard>
       ) : null}
 
-      {foundProduct ? (
-        <AppCard>
-          <Text style={styles.sectionTitle}>{t('nfcFoundProductTitle')}</Text>
-          <View style={styles.productHeader}>
-            <View style={styles.productHeaderText}>
-              <Text style={styles.productName}>{foundProduct.name}</Text>
-              <Text style={styles.metaText}>{foundProduct.sku}</Text>
+      {lookupResult ? (
+        lookupResult.activeUsage ? (
+          <AppCard>
+            <Text style={styles.sectionTitle}>{t('nfcFoundProductTitle')}</Text>
+            <View style={styles.productHeader}>
+              <View style={styles.productHeaderText}>
+                <Text style={styles.productName}>{lookupResult.activeUsage.productNameSnapshot}</Text>
+                <Text style={styles.metaText}>{lookupResult.activeUsage.tagUid}</Text>
+              </View>
+              <StatusBadge status={lookupResult.activeUsage.quantityCurrent > 0 ? 'inStock' : 'outOfStock'} />
             </View>
-            <StatusBadge status={foundProduct.status} />
-          </View>
-          <Text style={styles.metaText}>
-            {formatQuantity(foundProduct.quantity, foundProduct.unit)} • {foundProduct.location}
-          </Text>
-          {lastTagId ? <Text style={styles.metaText}>{t('nfcLastTag')}: {lastTagId}</Text> : null}
-          <AppButton
-            label={t('nfcOpenProduct')}
-            onPress={() =>
-              router.push({
-                pathname: '/(app)/product/[productId]',
-                params: { productId: foundProduct.id },
-              })
-            }
-          />
-        </AppCard>
-      ) : null}
+            <Text style={styles.metaText}>
+              {formatQuantity(lookupResult.activeUsage.quantityCurrent)}
+            </Text>
+            {lookupResult.activeUsage.warehouseLocation ? (
+              <Text style={styles.metaText}>
+                {t('inventoryLocationLabel')}: {lookupResult.activeUsage.warehouseLocation}
+              </Text>
+            ) : null}
+            <AppButton
+              label={t('nfcOpenProduct')}
+              onPress={() =>
+                router.push({
+                  pathname: '/(app)/product/[productId]',
+                  params: { productId: String(lookupResult.activeUsage?.productId) },
+                })
+              }
+            />
+          </AppCard>
+        ) : (
+          <AppCard>
+            <Text style={styles.sectionTitle}>{t('nfcFreeTagTitle')}</Text>
+            <Text style={styles.metaText}>{lookupResult.tagUid}</Text>
+            <Text style={styles.metaText}>{t('nfcFreeTagDescription')}</Text>
+          </AppCard>
+        )
+      ) : (
+        <EmptyState description={t('nfcEmptyDescription')} title={t('nfcEmptyTitle')} />
+      )}
     </AppScreen>
   );
 }

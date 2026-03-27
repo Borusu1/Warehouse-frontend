@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
 
@@ -11,30 +11,30 @@ import { EmptyState } from '@/src/components/EmptyState';
 import { StatusBadge } from '@/src/components/StatusBadge';
 import { OperationListItem } from '@/src/features/history/components/OperationListItem';
 import { ProductDetailsSkeleton } from '@/src/features/inventory/components/ProductDetailsSkeleton';
-import { useAuth } from '@/src/providers/AuthProvider';
 import { useI18n } from '@/src/providers/LocaleProvider';
 import { useWarehouseService } from '@/src/providers/WarehouseServiceProvider';
-import { colors, radius, spacing } from '@/src/theme';
-import { Operation, Product } from '@/src/types/warehouse';
+import { colors, spacing } from '@/src/theme';
+import { ActiveTag, Operation, Product } from '@/src/types/warehouse';
 import { formatDateTime, formatQuantity } from '@/src/utils/format';
-
-type StockActionType = 'stock-in' | 'stock-out' | 'adjustment';
-
-const stockActions: StockActionType[] = ['stock-in', 'stock-out', 'adjustment'];
+import { validatePositiveIntegerInput, validateTagUidInput } from '@/src/utils/forms';
 
 export function ProductDetailsScreen() {
   const { productId } = useLocalSearchParams<{ productId: string }>();
-  const { session } = useAuth();
   const { locale, t } = useI18n();
   const warehouseService = useWarehouseService();
   const isFocused = useIsFocused();
   const [product, setProduct] = useState<Product | null>(null);
   const [operations, setOperations] = useState<Operation[]>([]);
+  const [activeTags, setActiveTags] = useState<ActiveTag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [actionType, setActionType] = useState<StockActionType>('stock-out');
-  const [quantity, setQuantity] = useState('1');
-  const [note, setNote] = useState('');
+  const [receiptTagUid, setReceiptTagUid] = useState('');
+  const [receiptQuantity, setReceiptQuantity] = useState('1');
+  const [receiptLocation, setReceiptLocation] = useState('');
+  const [receiptNote, setReceiptNote] = useState('');
+  const [partialQuantities, setPartialQuantities] = useState<Record<string, string>>({});
+  const [partialNotes, setPartialNotes] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [activeSubmissionKey, setActiveSubmissionKey] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -47,14 +47,17 @@ export function ProductDetailsScreen() {
       setIsLoading(true);
 
       try {
-        const [nextProduct, allOperations] = await Promise.all([
-          warehouseService.getProductById(productId),
-          warehouseService.getOperations(),
+        const numericProductId = Number(productId);
+        const [nextProduct, nextOperations, nextActiveTags] = await Promise.all([
+          warehouseService.getProductById(numericProductId),
+          warehouseService.getOperations({ productId: numericProductId }),
+          warehouseService.getActiveTags(numericProductId),
         ]);
 
         if (isMounted) {
           setProduct(nextProduct);
-          setOperations(allOperations.filter((operation) => operation.productId === productId));
+          setOperations(nextOperations);
+          setActiveTags(nextActiveTags);
         }
       } finally {
         if (isMounted) {
@@ -70,52 +73,104 @@ export function ProductDetailsScreen() {
     };
   }, [isFocused, productId, warehouseService]);
 
-  const summaryRows = useMemo(
-    () =>
-      product
-        ? [
-            { label: t('fieldSku'), value: product.sku },
-            { label: t('fieldCategory'), value: product.category },
-            { label: t('fieldLocation'), value: product.location },
-            { label: t('fieldMinStock'), value: String(product.minStock) },
-            { label: t('inventoryTagsLabel'), value: String(product.tags.length) },
-            { label: t('inventoryUpdatedLabel'), value: formatDateTime(product.updatedAt, locale) },
-          ]
-        : [],
-    [locale, product, t]
-  );
+  async function reload() {
+    if (!productId) {
+      return;
+    }
 
-  async function submitStockAction() {
+    const numericProductId = Number(productId);
+    const [nextProduct, nextOperations, nextActiveTags] = await Promise.all([
+      warehouseService.getProductById(numericProductId),
+      warehouseService.getOperations({ productId: numericProductId }),
+      warehouseService.getActiveTags(numericProductId),
+    ]);
+
+    setProduct(nextProduct);
+    setOperations(nextOperations);
+    setActiveTags(nextActiveTags);
+  }
+
+  async function handleReceipt() {
     if (!product) {
       return;
     }
 
-    const numericQuantity = Number(quantity);
+    if (!validateTagUidInput(receiptTagUid)) {
+      setFormError(t('validationInvalidUuid'));
+      return;
+    }
 
-    if (!quantity.trim() || Number.isNaN(numericQuantity) || numericQuantity < 0) {
-      setFormError(t('validationNonNegative'));
+    if (!validatePositiveIntegerInput(receiptQuantity)) {
+      setFormError(t('validationPositiveInteger'));
       return;
     }
 
     setFormError(null);
+    setActiveSubmissionKey('receipt');
 
     try {
-      const updatedProduct = await warehouseService.changeStock({
+      await warehouseService.createReceipt({
         productId: product.id,
-        type: actionType,
-        quantity: numericQuantity,
-        note: note.trim() || t('stockActionDefaultNote'),
-        actor: session?.displayName ?? 'Warehouse Manager',
+        tagUid: receiptTagUid,
+        quantity: Number(receiptQuantity),
+        warehouseLocation: receiptLocation,
+        note: receiptNote,
       });
-
-      const nextOperations = await warehouseService.getOperations();
-      setProduct(updatedProduct);
-      setOperations(nextOperations.filter((operation) => operation.productId === product.id));
-      setQuantity('1');
-      setNote('');
+      setReceiptTagUid('');
+      setReceiptQuantity('1');
+      setReceiptLocation('');
+      setReceiptNote('');
+      await reload();
     } catch (error) {
-      const code = error instanceof Error ? error.message : 'UNKNOWN';
-      setFormError(code === 'INSUFFICIENT_STOCK' ? t('stockActionInsufficientStock') : t('genericError'));
+      setFormError(error instanceof Error ? error.message : t('genericError'));
+    } finally {
+      setActiveSubmissionKey(null);
+    }
+  }
+
+  async function handlePartialShipment(tagUid: string) {
+    const quantity = partialQuantities[tagUid] ?? '1';
+
+    if (!validatePositiveIntegerInput(quantity)) {
+      setFormError(t('validationPositiveInteger'));
+      return;
+    }
+
+    setFormError(null);
+    setActiveSubmissionKey(`partial:${tagUid}`);
+
+    try {
+      await warehouseService.createPartialShipment({
+        tagUid,
+        quantity: Number(quantity),
+        note: partialNotes[tagUid],
+      });
+      setPartialQuantities((current) => ({ ...current, [tagUid]: '1' }));
+      setPartialNotes((current) => ({ ...current, [tagUid]: '' }));
+      await reload();
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : t('genericError'));
+    } finally {
+      setActiveSubmissionKey(null);
+    }
+  }
+
+  async function handleFullShipment(tagUid: string) {
+    setFormError(null);
+    setActiveSubmissionKey(`full:${tagUid}`);
+
+    try {
+      await warehouseService.createFullShipment({
+        tagUid,
+        note: partialNotes[tagUid],
+      });
+      setPartialQuantities((current) => ({ ...current, [tagUid]: '1' }));
+      setPartialNotes((current) => ({ ...current, [tagUid]: '' }));
+      await reload();
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : t('genericError'));
+    } finally {
+      setActiveSubmissionKey(null);
     }
   }
 
@@ -136,80 +191,123 @@ export function ProductDetailsScreen() {
   }
 
   return (
-    <AppScreen subtitle={product.sku} title={product.name}>
+    <AppScreen subtitle={`#${product.id}`} title={product.name}>
       <AppCard>
         <View style={styles.header}>
-          <Text style={styles.quantity}>{formatQuantity(product.quantity, product.unit)}</Text>
+          <Text style={styles.quantity}>{formatQuantity(product.quantityOnHand)}</Text>
           <StatusBadge status={product.status} />
         </View>
-        {summaryRows.map((row) => (
-          <View key={row.label} style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>{row.label}</Text>
-            <Text style={styles.summaryValue}>{row.value}</Text>
-          </View>
-        ))}
-        <View style={styles.notesBlock}>
-          <Text style={styles.summaryLabel}>{t('fieldNotes')}</Text>
-          <Text style={styles.summaryValue}>{product.notes || t('productNoNotes')}</Text>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>{t('fieldDescription')}</Text>
+          <Text style={styles.summaryValue}>{product.description || t('productNoDescription')}</Text>
+        </View>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>{t('inventoryCreatedLabel')}</Text>
+          <Text style={styles.summaryValue}>{formatDateTime(product.createdAt, locale)}</Text>
         </View>
       </AppCard>
 
       <AppCard>
-        <Text style={styles.sectionTitle}>{t('productTagsTitle')}</Text>
-        {product.tags.length ? (
-          product.tags.map((tag) => (
-            <View key={tag.id} style={styles.tagRow}>
-              <Text style={styles.tagId}>{tag.id}</Text>
-              <Text style={styles.tagMeta}>{formatDateTime(tag.boundAt, locale)}</Text>
-            </View>
-          ))
-        ) : (
-          <Text style={styles.helperText}>{t('productNoTags')}</Text>
-        )}
-      </AppCard>
-
-      <AppCard>
-        <Text style={styles.sectionTitle}>{t('stockActionTitle')}</Text>
-        <View style={styles.actionRow}>
-          {stockActions.map((type) => {
-            const isActive = actionType === type;
-
-            return (
-              <Pressable
-                key={type}
-                onPress={() => setActionType(type)}
-                style={[styles.actionChip, isActive ? styles.actionChipActive : styles.actionChipInactive]}
-              >
-                <Text
-                  style={[
-                    styles.actionChipLabel,
-                    isActive ? styles.actionChipLabelActive : styles.actionChipLabelInactive,
-                  ]}
-                >
-                  {t(`operationType.${type}`)}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        <Text style={styles.sectionTitle}>{t('receiptTitle')}</Text>
         <AppInput
-          keyboardType="number-pad"
-          label={t('stockActionQuantityLabel')}
-          onChangeText={setQuantity}
-          placeholder="1"
-          value={quantity}
+          error={formError === t('validationInvalidUuid') ? formError : undefined}
+          label={t('fieldTagUid')}
+          onChangeText={setReceiptTagUid}
+          placeholder={t('fieldTagUidPlaceholder')}
+          value={receiptTagUid}
         />
         <AppInput
-          label={t('stockActionNoteLabel')}
+          error={formError === t('validationPositiveInteger') ? formError : undefined}
+          keyboardType="number-pad"
+          label={t('fieldQuantity')}
+          onChangeText={setReceiptQuantity}
+          placeholder="1"
+          value={receiptQuantity}
+        />
+        <AppInput
+          label={t('fieldLocation')}
+          onChangeText={setReceiptLocation}
+          placeholder={t('fieldLocationPlaceholder')}
+          value={receiptLocation}
+        />
+        <AppInput
+          label={t('fieldComment')}
           multiline
           numberOfLines={3}
-          onChangeText={setNote}
-          placeholder={t('stockActionNotePlaceholder')}
-          value={note}
+          onChangeText={setReceiptNote}
+          placeholder={t('fieldCommentPlaceholder')}
+          value={receiptNote}
         />
-        {formError ? <Text style={styles.errorText}>{formError}</Text> : null}
-        <AppButton label={t('stockActionSubmit')} onPress={submitStockAction} />
+        <AppButton
+          disabled={activeSubmissionKey === 'receipt'}
+          label={activeSubmissionKey === 'receipt' ? t('saving') : t('receiptAction')}
+          onPress={handleReceipt}
+        />
       </AppCard>
+
+      <View style={styles.historySection}>
+        <Text style={styles.sectionTitle}>{t('productTagsTitle')}</Text>
+        {activeTags.length ? (
+          activeTags.map((tag) => (
+            <AppCard key={tag.tagUid}>
+              <View style={styles.tagHeader}>
+                <View style={styles.tagHeaderText}>
+                  <Text style={styles.tagId}>{tag.tagUid}</Text>
+                  <Text style={styles.helperText}>
+                    {formatQuantity(tag.quantityCurrent)} • {t('inventoryReceivedLabel')} {formatDateTime(tag.arrivedAt, locale)}
+                  </Text>
+                  {tag.warehouseLocation ? (
+                    <Text style={styles.helperText}>
+                      {t('inventoryLocationLabel')}: {tag.warehouseLocation}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+              <AppInput
+                keyboardType="number-pad"
+                label={t('partialShipmentQuantityLabel')}
+                onChangeText={(value) =>
+                  setPartialQuantities((current) => ({
+                    ...current,
+                    [tag.tagUid]: value,
+                  }))
+                }
+                placeholder="1"
+                value={partialQuantities[tag.tagUid] ?? '1'}
+              />
+              <AppInput
+                label={t('fieldComment')}
+                multiline
+                numberOfLines={3}
+                onChangeText={(value) =>
+                  setPartialNotes((current) => ({
+                    ...current,
+                    [tag.tagUid]: value,
+                  }))
+                }
+                placeholder={t('fieldCommentPlaceholder')}
+                value={partialNotes[tag.tagUid] ?? ''}
+              />
+              {formError ? <Text style={styles.errorText}>{formError}</Text> : null}
+              <View style={styles.actionsRow}>
+                <AppButton
+                  disabled={activeSubmissionKey === `partial:${tag.tagUid}`}
+                  label={t('partialShipmentAction')}
+                  onPress={() => handlePartialShipment(tag.tagUid)}
+                />
+                <AppButton
+                  disabled={activeSubmissionKey === `full:${tag.tagUid}`}
+                  label={t('fullShipmentAction')}
+                  onPress={() => handleFullShipment(tag.tagUid)}
+                  variant="secondary"
+                />
+              </View>
+            </AppCard>
+          ))
+        ) : (
+          <EmptyState description={t('productNoTags')} title={t('productTagsEmptyTitle')} />
+        )}
+      </View>
 
       <View style={styles.historySection}>
         <Text style={styles.sectionTitle}>{t('productHistoryTitle')}</Text>
@@ -219,7 +317,6 @@ export function ProductDetailsScreen() {
               key={operation.id}
               operation={operation}
               productName={product.name}
-              productUnit={product.unit}
             />
           ))
         ) : (
@@ -253,64 +350,38 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 15,
   },
-  notesBlock: {
-    gap: spacing.xs,
-  },
   sectionTitle: {
     color: colors.text,
     fontSize: 17,
     fontWeight: '700',
   },
-  tagRow: {
-    backgroundColor: colors.primarySoft,
-    borderRadius: radius.md,
+  historySection: {
+    gap: spacing.md,
+  },
+  tagHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  tagHeaderText: {
     gap: spacing.xs,
-    padding: spacing.md,
   },
   tagId: {
-    color: colors.primary,
-    fontSize: 14,
+    color: colors.text,
+    fontSize: 15,
     fontWeight: '700',
   },
-  tagMeta: {
+  helperText: {
     color: colors.textMuted,
-    fontSize: 12,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  actionChip: {
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  actionChipActive: {
-    backgroundColor: colors.primary,
-  },
-  actionChipInactive: {
-    backgroundColor: colors.primarySoft,
-  },
-  actionChipLabel: {
     fontSize: 13,
-    fontWeight: '700',
-  },
-  actionChipLabelActive: {
-    color: colors.surface,
-  },
-  actionChipLabelInactive: {
-    color: colors.primary,
+    lineHeight: 20,
   },
   errorText: {
     color: colors.danger,
     fontSize: 14,
+    lineHeight: 20,
   },
-  historySection: {
+  actionsRow: {
+    flexDirection: 'row',
     gap: spacing.md,
-  },
-  helperText: {
-    color: colors.textMuted,
-    fontSize: 15,
   },
 });

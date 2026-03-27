@@ -6,23 +6,21 @@ import { useIsFocused } from '@react-navigation/native';
 import { EmptyState } from '@/src/components/EmptyState';
 import { AppScreen } from '@/src/components/AppScreen';
 import { HistorySkeleton } from '@/src/features/history/components/HistorySkeleton';
+import { OperationListItem } from '@/src/features/history/components/OperationListItem';
 import { useI18n } from '@/src/providers/LocaleProvider';
 import { useWarehouseService } from '@/src/providers/WarehouseServiceProvider';
 import { colors, radius, spacing } from '@/src/theme';
-import { Operation, OperationType, Product } from '@/src/types/warehouse';
-
-import { OperationListItem } from '@/src/features/history/components/OperationListItem';
+import { Operation, OperationType } from '@/src/types/warehouse';
 
 type OperationFilter = 'all' | OperationType;
 
-const operationFilters: OperationFilter[] = ['all', 'created', 'stock-in', 'stock-out', 'adjustment'];
+const operationFilters: OperationFilter[] = ['all', 'receipt', 'shipment_partial', 'shipment_full'];
 
 export function HistoryScreen() {
   const { t } = useI18n();
   const warehouseService = useWarehouseService();
   const isFocused = useIsFocused();
   const [operations, setOperations] = useState<Operation[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
   const [activeFilter, setActiveFilter] = useState<OperationFilter>('all');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -37,14 +35,10 @@ export function HistoryScreen() {
       setIsLoading(true);
 
       try {
-        const [nextOperations, nextProducts] = await Promise.all([
-          warehouseService.getOperations(),
-          warehouseService.getProducts(),
-        ]);
+        const nextOperations = await warehouseService.getOperations();
 
         if (isMounted) {
           setOperations(nextOperations);
-          setProducts(nextProducts);
         }
       } finally {
         if (isMounted) {
@@ -89,24 +83,19 @@ export function HistoryScreen() {
       {isLoading ? (
         <HistorySkeleton />
       ) : filteredOperations.length ? (
-        filteredOperations.map((operation) => {
-          const product = products.find((item) => item.id === operation.productId);
-
-          return (
-            <OperationListItem
-              key={operation.id}
-              onPress={() =>
-                router.push({
-                  pathname: '/(app)/product/[productId]',
-                  params: { productId: operation.productId },
-                })
-              }
-              operation={operation}
-              productName={product?.name ?? t('unknownProduct')}
-              productUnit={product?.unit ?? t('piecesUnit')}
-            />
-          );
-        })
+        filteredOperations.map((operation) => (
+          <OperationListItem
+            key={operation.id}
+            onPress={() =>
+              router.push({
+                pathname: '/(app)/product/[productId]',
+                params: { productId: String(operation.productId) },
+              })
+            }
+            operation={operation}
+            productName={operation.productNameSnapshot}
+          />
+        ))
       ) : (
         <EmptyState description={t('historyEmptyDescription')} title={t('historyEmptyTitle')} />
       )}

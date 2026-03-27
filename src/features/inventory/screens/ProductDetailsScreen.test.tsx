@@ -1,7 +1,6 @@
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { ProductDetailsScreen } from '@/src/features/inventory/screens/ProductDetailsScreen';
-import { useAuth } from '@/src/providers/AuthProvider';
 import { useI18n } from '@/src/providers/LocaleProvider';
 import { useWarehouseService } from '@/src/providers/WarehouseServiceProvider';
 import { createMockI18n } from '@/test-utils/mockI18n';
@@ -11,11 +10,7 @@ jest.mock('@react-navigation/native', () => ({
 }));
 
 jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({ productId: 'product-1' }),
-}));
-
-jest.mock('@/src/providers/AuthProvider', () => ({
-  useAuth: jest.fn(),
+  useLocalSearchParams: () => ({ productId: '1' }),
 }));
 
 jest.mock('@/src/providers/LocaleProvider', () => ({
@@ -26,90 +21,103 @@ jest.mock('@/src/providers/WarehouseServiceProvider', () => ({
   useWarehouseService: jest.fn(),
 }));
 
-const mockedUseAuth = jest.mocked(useAuth);
 const mockedUseI18n = jest.mocked(useI18n);
 const mockedUseWarehouseService = jest.mocked(useWarehouseService);
 
 describe('ProductDetailsScreen', () => {
-  it('loads product details and submits stock actions', async () => {
-    const changeStock = jest.fn().mockResolvedValue({
-      id: 'product-1',
-      name: 'Температурний сенсор',
-      sku: 'SNS-1001',
-      category: 'Сенсори',
-      quantity: 16,
-      unit: 'шт',
-      location: 'A-01',
-      minStock: 6,
-      status: 'inStock',
-      notes: 'Основний склад',
-      tags: [{ id: 'TAG-A100', boundAt: '2026-03-15T08:30:00.000Z' }],
-      updatedAt: '2026-03-23T10:00:00.000Z',
-    });
+  it('loads product details and submits receipt/shipment actions', async () => {
+    const getProductById = jest
+      .fn()
+      .mockResolvedValue({
+        id: 1,
+        name: 'Яблука',
+        description: 'Палета яблук',
+        quantityOnHand: 18,
+        createdAt: '2026-03-22T09:00:00.000Z',
+        status: 'inStock',
+      });
+    const getOperations = jest
+      .fn()
+      .mockResolvedValue([
+        {
+          id: 1,
+          usageId: 10,
+          productId: 1,
+          productNameSnapshot: 'Яблука',
+          type: 'receipt',
+          quantity: 18,
+          quantityDelta: 18,
+          note: 'Надходження',
+          actor: 'API',
+          createdAt: '2026-03-22T09:00:00.000Z',
+          tagUid: '123e4567-e89b-12d3-a456-426614174000',
+        },
+      ]);
+    const getActiveTags = jest
+      .fn()
+      .mockResolvedValue([
+        {
+          id: 10,
+          tagUid: '123e4567-e89b-12d3-a456-426614174000',
+          productId: 1,
+          productNameSnapshot: 'Яблука',
+          quantityInitial: 18,
+          quantityCurrent: 18,
+          arrivedAt: '2026-03-22T09:00:00.000Z',
+          warehouseLocation: 'A-01',
+        },
+      ]);
+    const createReceipt = jest.fn().mockResolvedValue(undefined);
+    const createPartialShipment = jest.fn().mockResolvedValue(undefined);
+    const createFullShipment = jest.fn().mockResolvedValue(undefined);
 
-    mockedUseAuth.mockReturnValue({
-      session: { displayName: 'Warehouse Manager' },
-    } as never);
     mockedUseI18n.mockReturnValue(createMockI18n() as never);
     mockedUseWarehouseService.mockReturnValue({
-      getProductById: jest.fn().mockResolvedValue({
-        id: 'product-1',
-        name: 'Температурний сенсор',
-        sku: 'SNS-1001',
-        category: 'Сенсори',
-        quantity: 18,
-        unit: 'шт',
-        location: 'A-01',
-        minStock: 6,
-        status: 'inStock',
-        notes: 'Основний склад',
-        tags: [{ id: 'TAG-A100', boundAt: '2026-03-15T08:30:00.000Z' }],
-        updatedAt: '2026-03-22T09:00:00.000Z',
-      }),
-      getOperations: jest
-        .fn()
-        .mockResolvedValueOnce([
-          {
-            id: 'op-1',
-            type: 'stock-in',
-            productId: 'product-1',
-            quantityDelta: 10,
-            quantityAfter: 18,
-            note: 'Надходження',
-            actor: 'Warehouse Manager',
-            createdAt: '2026-03-22T09:00:00.000Z',
-          },
-        ])
-        .mockResolvedValueOnce([
-          {
-            id: 'op-2',
-            type: 'stock-out',
-            productId: 'product-1',
-            quantityDelta: -1,
-            quantityAfter: 16,
-            note: 'Часткове відвантаження',
-            actor: 'Warehouse Manager',
-            createdAt: '2026-03-23T10:00:00.000Z',
-          },
-        ]),
-      changeStock,
+      getProductById,
+      getOperations,
+      getActiveTags,
+      createReceipt,
+      createPartialShipment,
+      createFullShipment,
     } as never);
 
-    const { getAllByText, getByDisplayValue, getByText } = render(<ProductDetailsScreen />);
+    const { getAllByText, getByText, getByPlaceholderText } = render(<ProductDetailsScreen />);
 
     await waitFor(() => {
-      expect(getAllByText('Температурний сенсор').length).toBeGreaterThan(0);
+      expect(getAllByText('Яблука').length).toBeGreaterThan(0);
     });
 
-    fireEvent.changeText(getByDisplayValue('1'), '1');
-    fireEvent.press(getByText('Застосувати'));
+    fireEvent.changeText(
+      getByPlaceholderText('123e4567-e89b-12d3-a456-426614174000'),
+      '123e4567-e89b-12d3-a456-426614174999'
+    );
+    fireEvent.press(getByText('Додати прихід'));
 
     await waitFor(() => {
-      expect(changeStock).toHaveBeenCalledWith(
+      expect(createReceipt).toHaveBeenCalledWith(
         expect.objectContaining({
-          productId: 'product-1',
-          type: 'stock-out',
+          productId: 1,
+          tagUid: '123e4567-e89b-12d3-a456-426614174999',
           quantity: 1,
+        })
+      );
+    });
+
+    fireEvent.press(getByText('Часткове відвантаження'));
+    await waitFor(() => {
+      expect(createPartialShipment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tagUid: '123e4567-e89b-12d3-a456-426614174000',
+          quantity: 1,
+        })
+      );
+    });
+
+    fireEvent.press(getByText('Повне відвантаження'));
+    await waitFor(() => {
+      expect(createFullShipment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tagUid: '123e4567-e89b-12d3-a456-426614174000',
         })
       );
     });

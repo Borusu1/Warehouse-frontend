@@ -13,10 +13,6 @@ const statusColors = {
     backgroundColor: '#def7ec',
     textColor: colors.success,
   },
-  lowStock: {
-    backgroundColor: '#fff4d5',
-    textColor: colors.warning,
-  },
   outOfStock: {
     backgroundColor: '#fee4e2',
     textColor: colors.danger,

@@ -13,7 +13,7 @@ import { validateLoginForm } from '@/src/utils/forms';
 export function LoginScreen() {
   const { login } = useAuth();
   const { t } = useI18n();
-  const [username, setUsername] = useState('demo');
+  const [username, setUsername] = useState('demo@example.com');
   const [password, setPassword] = useState('demo123');
   const [error, setError] = useState<string | null>(null);
   const [usernameError, setUsernameError] = useState<string | null>(null);

@@ -20,26 +20,22 @@ export function ProductListItem({ product, onPress }: ProductListItemProps) {
       <View style={styles.header}>
         <View style={styles.titleBlock}>
           <Text style={styles.name}>{product.name}</Text>
-          <Text style={styles.sku}>{product.sku}</Text>
+          <Text style={styles.metaDescription}>{product.description || t('productNoDescription')}</Text>
         </View>
         <StatusBadge status={product.status} />
       </View>
       <View style={styles.metaGrid}>
         <View style={styles.metaItem}>
           <Text style={styles.metaLabel}>{t('inventoryQuantityLabel')}</Text>
-          <Text style={styles.metaValue}>{formatQuantity(product.quantity, product.unit)}</Text>
+          <Text style={styles.metaValue}>{formatQuantity(product.quantityOnHand)}</Text>
         </View>
         <View style={styles.metaItem}>
-          <Text style={styles.metaLabel}>{t('inventoryLocationLabel')}</Text>
-          <Text style={styles.metaValue}>{product.location}</Text>
+          <Text style={styles.metaLabel}>{t('inventoryIdLabel')}</Text>
+          <Text style={styles.metaValue}>#{product.id}</Text>
         </View>
         <View style={styles.metaItem}>
-          <Text style={styles.metaLabel}>{t('inventoryTagsLabel')}</Text>
-          <Text style={styles.metaValue}>{product.tags.length}</Text>
-        </View>
-        <View style={styles.metaItem}>
-          <Text style={styles.metaLabel}>{t('inventoryUpdatedLabel')}</Text>
-          <Text style={styles.metaValue}>{formatDateTime(product.updatedAt, locale)}</Text>
+          <Text style={styles.metaLabel}>{t('inventoryCreatedLabel')}</Text>
+          <Text style={styles.metaValue}>{formatDateTime(product.createdAt, locale)}</Text>
         </View>
       </View>
     </AppCard>
@@ -72,10 +68,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-  sku: {
+  metaDescription: {
     color: colors.textMuted,
     fontSize: 13,
-    fontWeight: '600',
+    lineHeight: 20,
   },
   metaGrid: {
     flexDirection: 'row',

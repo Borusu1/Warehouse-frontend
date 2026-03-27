@@ -31,6 +31,7 @@ export function AppInput({
     <View style={styles.wrapper}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
+        accessibilityLabel={label}
         autoCapitalize={autoCapitalize}
         onChangeText={onChangeText}
         placeholder={placeholder}
