@@ -25,7 +25,7 @@ const mockedUseI18n = jest.mocked(useI18n);
 const mockedUseWarehouseService = jest.mocked(useWarehouseService);
 
 describe('ProductDetailsScreen', () => {
-  it('loads product details and submits receipt/shipment actions', async () => {
+  it('loads product details and submits shipment actions', async () => {
     const getProductById = jest
       .fn()
       .mockResolvedValue({
@@ -67,7 +67,6 @@ describe('ProductDetailsScreen', () => {
           warehouseLocation: 'A-01',
         },
       ]);
-    const createReceipt = jest.fn().mockResolvedValue(undefined);
     const createPartialShipment = jest.fn().mockResolvedValue(undefined);
     const createFullShipment = jest.fn().mockResolvedValue(undefined);
 
@@ -76,31 +75,14 @@ describe('ProductDetailsScreen', () => {
       getProductById,
       getOperations,
       getActiveTags,
-      createReceipt,
       createPartialShipment,
       createFullShipment,
     } as never);
 
-    const { getAllByText, getByText, getByPlaceholderText } = render(<ProductDetailsScreen />);
+    const { getAllByText, getByText } = render(<ProductDetailsScreen />);
 
     await waitFor(() => {
       expect(getAllByText('Яблука').length).toBeGreaterThan(0);
-    });
-
-    fireEvent.changeText(
-      getByPlaceholderText('123e4567-e89b-12d3-a456-426614174000'),
-      '123e4567-e89b-12d3-a456-426614174999'
-    );
-    fireEvent.press(getByText('Додати прихід'));
-
-    await waitFor(() => {
-      expect(createReceipt).toHaveBeenCalledWith(
-        expect.objectContaining({
-          productId: 1,
-          tagUid: '123e4567-e89b-12d3-a456-426614174999',
-          quantity: 1,
-        })
-      );
     });
 
     fireEvent.press(getByText('Часткове відвантаження'));

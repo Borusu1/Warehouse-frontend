@@ -22,14 +22,6 @@ export type InventoryEventFilter = {
   eventType?: InventoryEventType;
 };
 
-export type CreateReceiptInput = {
-  productId: number;
-  tagUid: string;
-  quantity: number;
-  warehouseLocation?: string;
-  note?: string;
-};
-
 export type CreatePartialShipmentInput = {
   tagUid: string;
   quantity: number;
@@ -52,7 +44,6 @@ export interface WarehouseDataService {
   getProductById(productId: string | number): Promise<Product | null>;
   createProduct(input: CreateProductInput): Promise<Product>;
   getOperations(filters?: InventoryEventFilter): Promise<Operation[]>;
-  createReceipt(input: CreateReceiptInput): Promise<TagUsage>;
   createPartialShipment(input: CreatePartialShipmentInput): Promise<TagUsage>;
   createFullShipment(input: CreateFullShipmentInput): Promise<TagUsage>;
   getActiveTags(productId?: number): Promise<ActiveTag[]>;

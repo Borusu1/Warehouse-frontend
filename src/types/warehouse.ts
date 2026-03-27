@@ -68,6 +68,4 @@ export type DashboardSummary = {
   lowStockCount: number;
   outOfStockCount: number;
   recentOperations: Operation[];
-  syncStatus: 'api';
-  lastUpdatedAt: string;
 };

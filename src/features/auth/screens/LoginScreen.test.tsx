@@ -22,27 +22,28 @@ describe('LoginScreen', () => {
     mockedUseAuth.mockReturnValue({ login } as never);
     mockedUseI18n.mockReturnValue(createMockI18n() as never);
 
-    const { getByDisplayValue, getByText, findAllByText } = render(<LoginScreen />);
+    const { getByText, findAllByText } = render(<LoginScreen />);
 
-    fireEvent.changeText(getByDisplayValue('demo@example.com'), '');
-    fireEvent.changeText(getByDisplayValue('demo123'), '');
     fireEvent.press(getByText('Увійти'));
 
     expect(await findAllByText('Поле є обов’язковим.')).toHaveLength(2);
     expect(login).not.toHaveBeenCalled();
   });
 
-  it('submits demo credentials', async () => {
+  it('submits entered credentials', async () => {
     const login = jest.fn().mockResolvedValue(undefined);
     mockedUseAuth.mockReturnValue({ login } as never);
     mockedUseI18n.mockReturnValue(createMockI18n() as never);
 
-    const { getByText } = render(<LoginScreen />);
+    const { getByPlaceholderText, getByText } = render(<LoginScreen />);
+
+    fireEvent.changeText(getByPlaceholderText('Введіть email'), 'user@example.com');
+    fireEvent.changeText(getByPlaceholderText('Введіть пароль'), 'secret123');
 
     fireEvent.press(getByText('Увійти'));
 
     await waitFor(() => {
-      expect(login).toHaveBeenCalledWith('demo@example.com', 'demo123');
+      expect(login).toHaveBeenCalledWith('user@example.com', 'secret123');
     });
   });
 });

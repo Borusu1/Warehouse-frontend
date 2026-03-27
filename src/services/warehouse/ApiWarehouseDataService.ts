@@ -6,7 +6,6 @@ import {
   CreateFullShipmentInput,
   CreatePartialShipmentInput,
   CreateProductInput,
-  CreateReceiptInput,
   InventoryEventFilter,
   WarehouseDataService,
 } from '@/src/services/warehouse/types';
@@ -207,20 +206,12 @@ function toOperation(event: BackendInventoryEventListItemRead): Operation {
 }
 
 function buildDashboardSummary(products: Product[], operations: Operation[]): DashboardSummary {
-  const timestamps = [
-    ...products.map((product) => product.createdAt),
-    ...operations.map((operation) => operation.createdAt),
-  ].filter(Boolean);
-
   return {
     totalProducts: products.length,
     totalUnits: products.reduce((sum, product) => sum + product.quantityOnHand, 0),
     lowStockCount: 0,
     outOfStockCount: products.filter((product) => product.status === 'outOfStock').length,
     recentOperations: operations.slice(0, 5),
-    syncStatus: 'api',
-    lastUpdatedAt: timestamps.sort((left, right) => new Date(right).getTime() - new Date(left).getTime())[0] ??
-      new Date().toISOString(),
   };
 }
 
@@ -432,29 +423,6 @@ export class ApiWarehouseDataService implements WarehouseDataService {
     );
 
     return events.map(toOperation);
-  }
-
-  async createReceipt(input: CreateReceiptInput): Promise<TagUsage> {
-    const storedSession = await readStoredSession();
-    const usage = await this.request<BackendTagUsageRead>(
-      '/api/v1/inventory/receipts',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          product_id: input.productId,
-          tag_uid: normalizeTagUid(input.tagUid),
-          quantity: input.quantity,
-          warehouse_location: input.warehouseLocation?.trim() || null,
-          note: input.note?.trim() || null,
-        }),
-      },
-      storedSession?.accessToken
-    );
-
-    return toTagUsage(usage);
   }
 
   async createPartialShipment(input: CreatePartialShipmentInput): Promise<TagUsage> {

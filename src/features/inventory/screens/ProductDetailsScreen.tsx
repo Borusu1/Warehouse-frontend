@@ -16,7 +16,7 @@ import { useWarehouseService } from '@/src/providers/WarehouseServiceProvider';
 import { colors, spacing } from '@/src/theme';
 import { ActiveTag, Operation, Product } from '@/src/types/warehouse';
 import { formatDateTime, formatQuantity } from '@/src/utils/format';
-import { validatePositiveIntegerInput, validateTagUidInput } from '@/src/utils/forms';
+import { validatePositiveIntegerInput } from '@/src/utils/forms';
 
 export function ProductDetailsScreen() {
   const { productId } = useLocalSearchParams<{ productId: string }>();
@@ -27,10 +27,6 @@ export function ProductDetailsScreen() {
   const [operations, setOperations] = useState<Operation[]>([]);
   const [activeTags, setActiveTags] = useState<ActiveTag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [receiptTagUid, setReceiptTagUid] = useState('');
-  const [receiptQuantity, setReceiptQuantity] = useState('1');
-  const [receiptLocation, setReceiptLocation] = useState('');
-  const [receiptNote, setReceiptNote] = useState('');
   const [partialQuantities, setPartialQuantities] = useState<Record<string, string>>({});
   const [partialNotes, setPartialNotes] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -88,44 +84,6 @@ export function ProductDetailsScreen() {
     setProduct(nextProduct);
     setOperations(nextOperations);
     setActiveTags(nextActiveTags);
-  }
-
-  async function handleReceipt() {
-    if (!product) {
-      return;
-    }
-
-    if (!validateTagUidInput(receiptTagUid)) {
-      setFormError(t('validationInvalidUuid'));
-      return;
-    }
-
-    if (!validatePositiveIntegerInput(receiptQuantity)) {
-      setFormError(t('validationPositiveInteger'));
-      return;
-    }
-
-    setFormError(null);
-    setActiveSubmissionKey('receipt');
-
-    try {
-      await warehouseService.createReceipt({
-        productId: product.id,
-        tagUid: receiptTagUid,
-        quantity: Number(receiptQuantity),
-        warehouseLocation: receiptLocation,
-        note: receiptNote,
-      });
-      setReceiptTagUid('');
-      setReceiptQuantity('1');
-      setReceiptLocation('');
-      setReceiptNote('');
-      await reload();
-    } catch (error) {
-      setFormError(error instanceof Error ? error.message : t('genericError'));
-    } finally {
-      setActiveSubmissionKey(null);
-    }
   }
 
   async function handlePartialShipment(tagUid: string) {
@@ -205,44 +163,6 @@ export function ProductDetailsScreen() {
           <Text style={styles.summaryLabel}>{t('inventoryCreatedLabel')}</Text>
           <Text style={styles.summaryValue}>{formatDateTime(product.createdAt, locale)}</Text>
         </View>
-      </AppCard>
-
-      <AppCard>
-        <Text style={styles.sectionTitle}>{t('receiptTitle')}</Text>
-        <AppInput
-          error={formError === t('validationInvalidUuid') ? formError : undefined}
-          label={t('fieldTagUid')}
-          onChangeText={setReceiptTagUid}
-          placeholder={t('fieldTagUidPlaceholder')}
-          value={receiptTagUid}
-        />
-        <AppInput
-          error={formError === t('validationPositiveInteger') ? formError : undefined}
-          keyboardType="number-pad"
-          label={t('fieldQuantity')}
-          onChangeText={setReceiptQuantity}
-          placeholder="1"
-          value={receiptQuantity}
-        />
-        <AppInput
-          label={t('fieldLocation')}
-          onChangeText={setReceiptLocation}
-          placeholder={t('fieldLocationPlaceholder')}
-          value={receiptLocation}
-        />
-        <AppInput
-          label={t('fieldComment')}
-          multiline
-          numberOfLines={3}
-          onChangeText={setReceiptNote}
-          placeholder={t('fieldCommentPlaceholder')}
-          value={receiptNote}
-        />
-        <AppButton
-          disabled={activeSubmissionKey === 'receipt'}
-          label={activeSubmissionKey === 'receipt' ? t('saving') : t('receiptAction')}
-          onPress={handleReceipt}
-        />
       </AppCard>
 
       <View style={styles.historySection}>

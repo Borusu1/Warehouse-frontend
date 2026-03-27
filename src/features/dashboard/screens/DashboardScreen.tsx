@@ -10,10 +10,10 @@ import { useI18n } from '@/src/providers/LocaleProvider';
 import { useWarehouseService } from '@/src/providers/WarehouseServiceProvider';
 import { colors, spacing } from '@/src/theme';
 import { DashboardSummary, Product } from '@/src/types/warehouse';
-import { formatDateTime, formatQuantity } from '@/src/utils/format';
+import { formatQuantity } from '@/src/utils/format';
 
 export function DashboardScreen() {
-  const { locale, t } = useI18n();
+  const { t } = useI18n();
   const warehouseService = useWarehouseService();
   const isFocused = useIsFocused();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -66,16 +66,6 @@ export function DashboardScreen() {
             <MetricCard label={t('dashboardMetricProducts')} value={String(summary.totalProducts)} />
             <MetricCard label={t('dashboardMetricUnits')} tone="success" value={String(summary.totalUnits)} />
             <MetricCard label={t('dashboardMetricOutOfStock')} tone="danger" value={String(summary.outOfStockCount)} />
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('dashboardSyncTitle')}</Text>
-            <View style={styles.infoCard}>
-              <Text style={styles.infoValue}>{t('dashboardSyncApiMode')}</Text>
-              <Text style={styles.infoCaption}>
-                {t('dashboardLastUpdated')}: {formatDateTime(summary.lastUpdatedAt, locale)}
-              </Text>
-            </View>
           </View>
 
           <View style={styles.section}>

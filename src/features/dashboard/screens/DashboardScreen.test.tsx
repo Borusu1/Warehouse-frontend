@@ -44,8 +44,6 @@ describe('DashboardScreen', () => {
             tagUid: '123e4567-e89b-12d3-a456-426614174000',
           },
         ],
-        syncStatus: 'api',
-        lastUpdatedAt: '2026-03-24T09:00:00.000Z',
       }),
       getProducts: jest.fn().mockResolvedValue([
         {
@@ -62,7 +60,6 @@ describe('DashboardScreen', () => {
     const { getByText } = render(<DashboardScreen />);
 
     await waitFor(() => {
-      expect(getByText('Підключено до API')).toBeTruthy();
       expect(getByText('Товарів')).toBeTruthy();
       expect(getByText('Нове надходження')).toBeTruthy();
     });

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '@/src/components/AppButton';
 import { AppCard } from '@/src/components/AppCard';
@@ -7,14 +6,13 @@ import { AppInput } from '@/src/components/AppInput';
 import { AppScreen } from '@/src/components/AppScreen';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { useI18n } from '@/src/providers/LocaleProvider';
-import { colors, spacing } from '@/src/theme';
 import { validateLoginForm } from '@/src/utils/forms';
 
 export function LoginScreen() {
   const { login } = useAuth();
   const { t } = useI18n();
-  const [username, setUsername] = useState('demo@example.com');
-  const [password, setPassword] = useState('demo123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
@@ -56,11 +54,6 @@ export function LoginScreen() {
       title={t('loginTitle')}
     >
       <AppCard>
-        <View style={styles.hintBlock}>
-          <Text style={styles.hintTitle}>{t('demoAccessTitle')}</Text>
-          <Text style={styles.hintText}>{t('demoAccessCredentials')}</Text>
-        </View>
-
         <AppInput
           autoCapitalize="none"
           error={usernameError ?? undefined}
@@ -86,22 +79,3 @@ export function LoginScreen() {
     </AppScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  hintBlock: {
-    backgroundColor: colors.primarySoft,
-    borderRadius: 12,
-    gap: spacing.xs,
-    padding: spacing.md,
-  },
-  hintTitle: {
-    color: colors.primary,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  hintText: {
-    color: colors.text,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-});
